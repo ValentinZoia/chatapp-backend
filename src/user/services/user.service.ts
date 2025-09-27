@@ -51,23 +51,23 @@ export class UserService {
     }
   }
 
-  async findUserBy({
-    key,
-    value,
-  }: {
-    key: keyof CreateUserInput;
-    value: any;
-  }): Promise<UserEntity | null> {
-    try {
-      const user = await this.prisma.user.findFirst({
-        where: {
-          [key]: value,
-        },
-      });
+  // async findUserBy({
+  //   key,
+  //   value,
+  // }: {
+  //   key: keyof CreateUserInput;
+  //   value: any;
+  // }): Promise<UserEntity | null> {
+  //   try {
+  //     const user = await this.prisma.user.findFirst({
+  //       where: {
+  //         [key]: value,
+  //       },
+  //     });
 
-      return user;
-    } catch (error: any) {
-      throw new HttpException(error, 500);
-    }
-  }
+  //     return user;
+  //   } catch (error: any) {
+  //     throw new HttpException(error, 500);
+  //   }
+  // }
 }

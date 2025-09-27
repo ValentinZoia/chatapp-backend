@@ -1,4 +1,4 @@
-import { CreateUserInput } from '../dtos/create-user.input';
+// import { CreateUserInput } from '../dtos/create-user.input';
 import { UpdateUserInput } from '../dtos/update-user.input';
 import { UserEntity } from '../entities/user.entity';
 import { UserService } from '../services/user.service';
@@ -7,10 +7,13 @@ import { UseGuards } from '@nestjs/common';
 import { GraphqlAuthGuard } from 'src/auth/guards/auth.guard';
 import { createWriteStream } from 'fs'; //para crear un stream de escritura
 import { join } from 'path';
-import { UpdateUserArgs } from '../dtos/args/updateProfile.args';
+
 import { Request } from 'express';
-import * as GraphQLUpload from 'graphql-upload/GraphQLUpload.mjs';
+
 import { v4 as uuidv4 } from 'uuid';
+import GraphQLUpload, {
+  type FileUpload,
+} from 'graphql-upload/GraphQLUpload.mjs';
 
 @Resolver()
 export class UserResolver {
@@ -32,13 +35,13 @@ export class UserResolver {
     return this.userService.findAllUsers();
   }
 
-  @Query(() => UserEntity, { name: 'findUserBy', description: 'Find user by ' })
-  async findBy(
-    @Args('key', { type: () => String }) key: keyof CreateUserInput,
-    @Args('value') value: any,
-  ) {
-    return this.userService.findUserBy({ key, value });
-  }
+  // @Query(() => UserEntity, { name: 'findUserBy', description: 'Find user by ' })
+  // async findBy(
+  //   @Args('key', { type: () => String }) key: keyof CreateUserInput,
+  //   @Args('value') value: any,
+  // ) {
+  //   return this.userService.findUserBy({ key, value });
+  // }
 
   @UseGuards(GraphqlAuthGuard)
   @Mutation(() => UserEntity, {
@@ -46,10 +49,11 @@ export class UserResolver {
     description: 'Update user profile',
   })
   async updateUserProfile(
-    @Args('updateUserArgs') updateUserArgs: UpdateUserArgs,
+    @Args('fullname', { type: () => String }) fullname: string,
+    @Args({ name: 'file', type: () => GraphQLUpload, nullable: true })
+    file: FileUpload,
     @Context() context: { req: Request },
   ) {
-    const { file, fullname } = updateUserArgs;
     const imageUrl = file ? await this.storeImageAndGetUrl(file) : null;
     const userId = context.req.user.sub;
     const data = {
@@ -57,11 +61,10 @@ export class UserResolver {
       avatarUrl: imageUrl,
       id: userId,
     } as UpdateUserInput;
-
     return this.userService.updateUser(data);
   }
 
-  private async storeImageAndGetUrl(file: GraphQLUpload.FileUpload) {
+  private async storeImageAndGetUrl(file: FileUpload) {
     const { createReadStream, filename } = file;
     const uniqueFilename = `${uuidv4()}_${filename}`;
     const path = join(process.cwd(), 'public', uniqueFilename);

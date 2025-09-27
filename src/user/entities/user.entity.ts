@@ -1,6 +1,7 @@
-import { Field, Int } from '@nestjs/graphql';
+import { Field, Int, ObjectType } from '@nestjs/graphql';
 import { Exclude } from 'class-transformer';
 
+@ObjectType()
 export class UserEntity {
   @Field(() => Int)
   id: number;

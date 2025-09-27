@@ -2,7 +2,68 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+input LogInInput {
+  email: String!
+  password: String!
+}
+
+type LogInResponse {
+  user: UserEntity!
+}
+
+type Mutation {
+  """login user"""
+  login(LogInInput: LogInInput!): LogInResponse!
+
+  """logout user"""
+  logout: String!
+
+  """refresh token"""
+  refreshToken: String!
+
+  """register user"""
+  register(RegisterInput: RegisterInput!): RegisterResponse!
+
+  """Update user profile"""
+  updateUserProfile(file: Upload, fullname: String!): UserEntity!
+}
+
 type Query {
+  """Find all users"""
+  findAllUsers: [UserEntity!]!
+
+  """Find user by id"""
+  findUserById(id: Int!): UserEntity!
+
   """just return hello"""
   hello: String!
+}
+
+input RegisterInput {
+  confirmPassword: String!
+  email: String!
+  fullname: String!
+  password: String!
+}
+
+type RegisterResponse {
+  user: UserEntity
+}
+
+"""The `Upload` scalar type represents a file upload."""
+scalar Upload
+
+type UserEntity {
+  avatarUrl: String
+  createdAt: DateTime
+  email: String!
+  fullname: String!
+  id: Int!
+  password: String
+  updatedAt: DateTime
 }
