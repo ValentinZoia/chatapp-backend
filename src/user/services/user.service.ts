@@ -1,9 +1,8 @@
-import { HttpException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UpdateUserInput } from '../dtos/update-user.input';
 import { UserEntity } from '../entities/user.entity';
-import { NotFoundError } from 'rxjs';
-import { CreateUserInput } from '../dtos/create-user.input';
+import { ErrorManager } from 'src/utils/error.manager';
 
 @Injectable()
 export class UserService {
@@ -20,7 +19,7 @@ export class UserService {
 
       return updatedUser;
     } catch (error) {
-      throw new HttpException(error, 500);
+      throw ErrorManager.createSignatureError(error.message);
     }
   }
 
@@ -29,7 +28,7 @@ export class UserService {
       const users = await this.prisma.user.findMany();
       return users;
     } catch (error) {
-      throw new HttpException(error, 500);
+      throw ErrorManager.createSignatureError(error.message);
     }
   }
 
@@ -42,12 +41,15 @@ export class UserService {
       });
 
       if (!user) {
-        throw new NotFoundException('User not found');
+        throw new ErrorManager({
+          type: 'NOT_FOUND',
+          message: 'User not found',
+        });
       }
 
       return user;
     } catch (error) {
-      throw new HttpException(error, 500);
+      throw ErrorManager.createSignatureError(error.message);
     }
   }
 
@@ -67,7 +69,7 @@ export class UserService {
 
   //     return user;
   //   } catch (error: any) {
-  //     throw new HttpException(error, 500);
+  //     throw ErrorManager.createSignatureError(error.message);
   //   }
   // }
 }

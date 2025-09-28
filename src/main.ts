@@ -3,9 +3,12 @@ import { AppModule } from './app.module';
 import cookieParser from 'cookie-parser';
 import graphqlUploadExpress from 'graphql-upload/graphqlUploadExpress.mjs';
 import { BadRequestException, ValidationPipe } from '@nestjs/common';
+import { GraphQLExceptionFilter } from './filters/exception-filter';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger: ['error', 'warn'], // Solo errores y warnings, no debug
+  });
 
   //CORS
   app.enableCors({
@@ -41,11 +44,15 @@ async function bootstrap() {
           ).join(', ');
           return accumulador;
         }, {});
-        throw new BadRequestException(formatedErrors);
+
+        throw new BadRequestException({
+          message: 'Validation failed',
+          errors: formatedErrors,
+        });
       },
     }),
   );
-
+  app.useGlobalFilters(new GraphQLExceptionFilter());
   await app.listen(process.env.PORT ?? 3000);
   console.log(`Application is running on: ${await app.getUrl()}`);
 }

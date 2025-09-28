@@ -15,6 +15,7 @@ import { UserEntity } from 'src/user/entities/user.entity';
 import { LogInInput } from 'src/auth/dtos/inputs/login.input';
 import * as bcrypt from 'bcrypt';
 import { RegisterInput } from 'src/auth/dtos/inputs/register.input';
+import { ErrorManager } from 'src/utils/error.manager';
 
 @Injectable()
 export class AuthService {
@@ -30,8 +31,9 @@ export class AuthService {
   ): Promise<RegisterResponse> {
     try {
       if (credentials.password !== credentials.confirmPassword) {
-        throw new BadRequestException({
-          confirmPassword: 'Passwords do not match',
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'Passwords do not match',
         });
       }
 
@@ -41,7 +43,10 @@ export class AuthService {
         },
       });
       if (existingUser) {
-        throw new BadRequestException({ email: 'Email already in use' });
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'Email already exists',
+        });
       }
       const hashedPassword = await bcrypt.hash(credentials.password, 10);
       const user = await this.prisma.user.create({
@@ -53,7 +58,7 @@ export class AuthService {
       });
       return this.issueTokens(user, response);
     } catch (error) {
-      throw new HttpException(error, 500);
+      throw ErrorManager.createSignatureError(error.message);
     }
   }
 
@@ -64,14 +69,15 @@ export class AuthService {
     try {
       const user = await this.validateUser(credentials);
       if (!user) {
-        throw new BadRequestException({
-          invalidCredentials: 'invalid credentials',
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'Invalid credentials',
         });
       }
       //3 - create token
       return this.issueTokens(user, response);
     } catch (error) {
-      throw new HttpException(error, 500);
+      throw ErrorManager.createSignatureError(error.message);
     }
   }
 
@@ -82,57 +88,70 @@ export class AuthService {
 
       return 'Successfully logged out';
     } catch (error) {
-      throw new HttpException(error, 500);
+      throw ErrorManager.createSignatureError(error.message);
     }
   }
 
   async refreshToken(req: Request, res: Response) {
-    // 1 - get refresh token from the cookie
-    const refreshToken = req.cookies[TokenName.REFRESH];
-
-    if (!refreshToken) {
-      throw new UnauthorizedException('Refresh token not found');
-    }
-
-    // 2 - validate  the token
-    let payload: JwtPayload;
     try {
-      payload = this.jwtService.verify(refreshToken, {
-        secret: this.configService.get('JWT_REFRESH_SECRET'),
+      // 1 - get refresh token from the cookie
+      const refreshToken = req.cookies[TokenName.REFRESH];
+
+      if (!refreshToken) {
+        throw new ErrorManager({
+          type: 'UNAUTHORIZED',
+          message: 'Refresh token not found',
+        });
+      }
+
+      // 2 - validate  the token
+      let payload: JwtPayload;
+      try {
+        payload = this.jwtService.verify(refreshToken, {
+          secret: this.configService.get('JWT_REFRESH_SECRET'),
+        });
+      } catch (error) {
+        throw new ErrorManager({
+          type: 'UNAUTHORIZED',
+          message: 'Invalid or expired refresh token',
+        });
+      }
+
+      // 3 - check if the user exists
+      const userExists = await this.prisma.user.findUnique({
+        where: { id: payload.sub },
       });
+
+      if (!userExists) {
+        throw new ErrorManager({
+          type: 'UNAUTHORIZED',
+          message: 'User no longer exists',
+        });
+      }
+
+      // 4 - create new access token
+      const expiresIn = 15000;
+      const expiration = Math.floor(Date.now() / 1000) + expiresIn;
+
+      const accessToken = this.jwtService.sign(
+        { ...payload, exp: expiration },
+        {
+          secret: this.configService.get('JWT_ACCESS_SECRET'),
+        },
+      );
+
+      // 5 - then set the cookie with the new access token
+      res.cookie(TokenName.ACCESS, accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production', // Solo en HTTPS en producción
+        sameSite: 'strict',
+        maxAge: expiresIn,
+      });
+
+      return accessToken;
     } catch (error) {
-      throw new UnauthorizedException('Invalid or expired refresh token');
+      throw ErrorManager.createSignatureError(error.message);
     }
-
-    // 3 - check if the user exists
-    const userExists = await this.prisma.user.findUnique({
-      where: { id: payload.sub },
-    });
-
-    if (!userExists) {
-      throw new UnauthorizedException('User no longer exists');
-    }
-
-    // 4 - create new access token
-    const expiresIn = 15000;
-    const expiration = Math.floor(Date.now() / 1000) + expiresIn;
-
-    const accessToken = this.jwtService.sign(
-      { ...payload, exp: expiration },
-      {
-        secret: this.configService.get('JWT_ACCESS_SECRET'),
-      },
-    );
-
-    // 5 - then set the cookie with the new access token
-    res.cookie(TokenName.ACCESS, accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // Solo en HTTPS en producción
-      sameSite: 'strict',
-      maxAge: expiresIn,
-    });
-
-    return accessToken;
   }
 
   private async issueTokens(user: UserEntity, res: Response) {
@@ -173,8 +192,9 @@ export class AuthService {
       });
 
       if (!userExists) {
-        throw new BadRequestException({
-          invalidCredentials: 'invalid credentials',
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'Invalid credentials',
         });
       }
       //2 - verify password match
@@ -184,16 +204,15 @@ export class AuthService {
       );
 
       if (!isPasswordValid) {
-        throw new BadRequestException({
-          invalidCredentials: 'invalid credentials',
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'Invalid credentials',
         });
       }
 
       return userExists;
     } catch (error) {
-      throw new BadRequestException({
-        invalidCredentials: 'invalid credentials',
-      });
+      throw ErrorManager.createSignatureError(error.message);
     }
   }
 }
