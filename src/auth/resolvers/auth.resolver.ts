@@ -5,6 +5,7 @@ import { RegisterInput } from 'src/auth/dtos/inputs/register.input';
 import { type Response, type Request } from 'express';
 import { LogInInput } from 'src/auth/dtos/inputs/login.input';
 import { BadRequestException } from '@nestjs/common';
+import { Res } from '../decorators/response.decorator';
 
 @Resolver()
 export class AuthResolver {
@@ -17,9 +18,9 @@ export class AuthResolver {
   async register(
     @Args('RegisterInput', { type: () => RegisterInput })
     credentials: RegisterInput,
-    @Context() context: { res: Response },
+    @Res() res: Response,
   ) {
-    return this.aurhService.register(credentials, context.res);
+    return this.aurhService.register(credentials, res);
   }
 
   @Mutation(() => LogInResponse, { name: 'login', description: 'login user' })
