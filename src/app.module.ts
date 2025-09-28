@@ -20,11 +20,32 @@ import { ConfigService, ConfigModule } from '@nestjs/config';
       driver: ApolloDriver,
       imports: [ConfigModule, AppModule],
       inject: [ConfigService],
+
       useFactory: () => ({
         autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
         playground: false,
         plugins: [ApolloServerPluginLandingPageLocalDefault()],
         sortSchema: true,
+        debug: false,
+        introspection: true,
+        includeStacktraceInErrorResponses: false,
+        context: ({ req, res }) => ({ req, res }),
+        formatError: (error) => {
+          // Crear respuesta limpia sin locations, path, stacktrace
+          const formattedError: any = {
+            message: error.message,
+            extensions: {
+              code: error.extensions?.code || 'INTERNAL_SERVER_ERROR',
+            },
+          };
+
+          // Si hay errores de validación, incluirlos
+          if (error.extensions?.errors) {
+            formattedError.extensions.errors = error.extensions.errors;
+          }
+
+          return formattedError;
+        },
       }),
     }),
     ConfigModule.forRoot({
