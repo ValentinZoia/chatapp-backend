@@ -7,6 +7,7 @@ import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { ConfigService, ConfigModule } from '@nestjs/config';
+import { TokenService } from './token/token.service';
 
 @Module({
   imports: [
@@ -18,16 +19,32 @@ import { ConfigService, ConfigModule } from '@nestjs/config';
     // }),
     GraphQLModule.forRootAsync<ApolloDriverConfig>({
       driver: ApolloDriver,
-      imports: [ConfigModule, AppModule],
+      imports: [ConfigModule],
       inject: [ConfigService],
 
-      useFactory: () => ({
+      useFactory: (
+        configService: ConfigService,
+        tokenService: TokenService,
+      ) => ({
         autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
         playground: false,
         plugins: [ApolloServerPluginLandingPageLocalDefault()],
         sortSchema: true,
+        subscriptions: {
+          'graphql-ws': true,
+          'subscriptions-transport-ws': true, //desprecated
+        },
+        onConnect: async (connectionParams) => {
+          const token = tokenService.extractToken(connectionParams);
+          if (!token) {
+            throw new Error('Token not found');
+          }
+          const user = tokenService.validateToken(token);
+          if (!user) throw new Error('User not found');
+          return { user };
+        },
         debug: false,
-        introspection: true,
+        introspection: true, //en production -> false
         includeStacktraceInErrorResponses: false,
         context: ({ req, res }) => ({ req, res }),
         formatError: (error) => {
@@ -55,6 +72,6 @@ import { ConfigService, ConfigModule } from '@nestjs/config';
     UserModule,
   ],
 
-  providers: [PrismaService],
+  providers: [PrismaService, TokenService],
 })
 export class AppModule {}
