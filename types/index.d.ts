@@ -15,5 +15,8 @@ declare namespace NodeJS {
     JWT_ACCESS_SECRET: string;
 
     IMAGE_PATH: string;
+
+    REDIS_HOST: string;
+    REDIS_PORT: string;
   }
 }
