@@ -8,6 +8,9 @@ import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { ConfigService, ConfigModule } from '@nestjs/config';
 import { TokenService } from './token/token.service';
+import { ChatroomModule } from './chatroom/chatroom.module';
+import { LiveChatroomModule } from './live-chatroom/live-chatroom.module';
+import { PubSubModule } from './PubSub/pubsub.module';
 
 @Module({
   imports: [
@@ -68,8 +71,11 @@ import { TokenService } from './token/token.service';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    PubSubModule,
     AuthModule,
     UserModule,
+    ChatroomModule,
+    LiveChatroomModule,
   ],
 
   providers: [PrismaService, TokenService],
