@@ -53,6 +53,46 @@ export class UserService {
     }
   }
 
+  async searchUsers(fullname: string, userId: number): Promise<UserEntity[]> {
+    try {
+      const users = await this.prisma.user.findMany({
+        where: {
+          id: {
+            not: userId,
+          },
+          fullname: {
+            contains: fullname,
+            mode: 'insensitive',
+          },
+        },
+      });
+      return users;
+    } catch (error) {
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  }
+
+  async getUsersOfChatroom(chatroomId: number): Promise<UserEntity[]> {
+    try {
+      const users = await this.prisma.user.findMany({
+        where: {
+          chatrooms: {
+            some: {
+              id: chatroomId,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+
+      return users;
+    } catch (error) {
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  }
+
   // async findUserBy({
   //   key,
   //   value,

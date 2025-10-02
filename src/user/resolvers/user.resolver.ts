@@ -74,4 +74,19 @@ export class UserResolver {
     stream.pipe(out);
     return imageUrl;
   }
+
+  @UseGuards(GraphqlAuthGuard)
+  @Query(() => [UserEntity])
+  async searchUsers(
+    @Args('fullname') fullname: string,
+    @Context() context: { req: Request },
+  ) {
+    return this.userService.searchUsers(fullname, context.req.user.sub);
+  }
+
+  @UseGuards(GraphqlAuthGuard)
+  @Query(() => [UserEntity])
+  getUsersOfChatroom(@Args('chatroomId') chatroomId: number) {
+    return this.userService.getUsersOfChatroom(chatroomId);
+  }
 }
