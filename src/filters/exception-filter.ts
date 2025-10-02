@@ -3,6 +3,7 @@ import {
   ArgumentsHost,
   HttpException,
   ExceptionFilter,
+  BadRequestException,
 } from '@nestjs/common';
 import { GraphQLError } from 'graphql';
 import { GqlArgumentsHost, GqlExceptionFilter } from '@nestjs/graphql';
@@ -14,7 +15,10 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
     const response = exception.getResponse();
 
     // Si es error de validación (400), formato limpio
-    if (exception.getStatus() === 400) {
+    if (
+      exception.getStatus() === 400 ||
+      exception instanceof BadRequestException
+    ) {
       return new GraphQLError(exception.message, {
         extensions: {
           code: 'VALIDATION_ERROR',
