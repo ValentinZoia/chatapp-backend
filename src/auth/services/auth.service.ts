@@ -159,7 +159,7 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign(payload, {
       secret: this.configService.get('JWT_ACCESS_SECRET'),
-      expiresIn: '150sec',
+      expiresIn: '3h',
     });
 
     const refreshToken = this.jwtService.sign(payload, {
@@ -192,18 +192,21 @@ export class AuthService {
       });
 
       if (!userExists) {
+        console.log('no existe el usuario');
         throw new ErrorManager({
           type: 'BAD_REQUEST',
           message: 'Invalid credentials',
         });
       }
+
       //2 - verify password match
       const isPasswordValid = await bcrypt.compare(
-        userExists.password,
         credentials.password,
+        userExists.password,
       );
 
       if (!isPasswordValid) {
+        console.log('contraseña no coinciden');
         throw new ErrorManager({
           type: 'BAD_REQUEST',
           message: 'Invalid credentials',

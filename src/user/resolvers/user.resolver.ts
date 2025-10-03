@@ -87,6 +87,7 @@ export class UserResolver {
   @UseGuards(GraphqlAuthGuard)
   @Query(() => [UserEntity])
   getUsersOfChatroom(@Args('chatroomId') chatroomId: number) {
+    console.log('chatroomId', chatroomId);
     return this.userService.getUsersOfChatroom(chatroomId);
   }
 }
