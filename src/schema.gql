@@ -68,6 +68,9 @@ type Query {
 
   """Find user by id"""
   findUserById(id: Int!): UserEntity!
+
+  """Get a chatroom by id"""
+  getChatroomById(chatroomId: Float!): ChatroomEntity!
   getChatroomsForUser(userId: Float!): [ChatroomEntity!]!
   getMessagesForChatroom(chatroomId: Float!): [MessageEntity!]!
   getUsersOfChatroom(chatroomId: Float!): [UserEntity!]!
