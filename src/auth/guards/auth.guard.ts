@@ -25,26 +25,21 @@ export class GraphqlAuthGuard implements CanActivate {
 
     //extraer token de la cookie
     const token = this.extractTokenFromCookie(request);
-    console.log('TU TOKEN DESDE EL BACKEND', token);
 
     //si no hay, no pasas
     if (!token) {
-      console.log('NO PASAS CRACK');
       throw new UnauthorizedException();
     }
 
     try {
-      console.log('ESTE ES EL TOKEN', token);
-      console.log('SECRETO', this.configService.get('JWT_ACCESS_SECRET'));
       //si hay token, lo verifico y extraigo el payload
       const payload = await this.jwtService.verifyAsync(token, {
         secret: this.configService.get('JWT_ACCESS_SECRET'),
       });
-      console.log('ESTE ES EL PAYLOAD CRACK', payload);
+
       //guardo el payload en el request
       request['user'] = payload;
     } catch {
-      console.log('OCURRIO UN ERROR CON EL PAYLOAD PERRO');
       throw new UnauthorizedException();
     }
     return true;

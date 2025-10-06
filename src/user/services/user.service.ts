@@ -86,7 +86,7 @@ export class UserService {
           createdAt: 'desc',
         },
       });
-      console.log('USERS', users);
+
       return users;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);

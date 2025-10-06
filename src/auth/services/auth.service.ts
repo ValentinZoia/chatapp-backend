@@ -192,7 +192,6 @@ export class AuthService {
       });
 
       if (!userExists) {
-        console.log('no existe el usuario');
         throw new ErrorManager({
           type: 'BAD_REQUEST',
           message: 'Invalid credentials',
@@ -206,7 +205,6 @@ export class AuthService {
       );
 
       if (!isPasswordValid) {
-        console.log('contraseña no coinciden');
         throw new ErrorManager({
           type: 'BAD_REQUEST',
           message: 'Invalid credentials',
