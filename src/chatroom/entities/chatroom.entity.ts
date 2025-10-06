@@ -1,5 +1,6 @@
 import { Field, ObjectType, ID, Int } from '@nestjs/graphql';
 import { UserEntity } from 'src/user/entities/user.entity';
+import { ChatroomAccess } from '@prisma/client';
 
 @ObjectType()
 export class ChatroomEntity {
@@ -8,6 +9,21 @@ export class ChatroomEntity {
 
   @Field({ nullable: true })
   name?: string;
+
+  @Field({ nullable: true })
+  description: string | null;
+
+  @Field({ nullable: true })
+  colorHex?: string | null;
+
+  @Field({ nullable: true })
+  image?: string | null;
+
+  @Field(() => ChatroomAccess, { defaultValue: ChatroomAccess.PRIVATE })
+  access: ChatroomAccess;
+
+  // @Field({ nullable: true })
+  // image?: string;
 
   @Field(() => Int, { nullable: true })
   adminId: number | null;
