@@ -30,6 +30,10 @@ model User {
 model Chatroom {
   id            Int             @id @default(autoincrement())
   name          String
+  description   String?
+  colorHex      String?
+  image         String?
+  access        ChatroomAccess  @default(PRIVATE)
   adminId       Int?
   users         User[]          @relation("UserChatrooms")
   messages      Message[]
@@ -60,4 +64,9 @@ model ChatroomUsers {
   chatroom   Chatroom @relation(fields: [chatroomId], references: [id], onDelete: Cascade)
 
   @@id([chatroomId, userId])
+}
+
+enum ChatroomAccess {
+  PUBLIC
+  PRIVATE
 }
