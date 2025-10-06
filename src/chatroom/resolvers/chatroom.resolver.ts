@@ -18,6 +18,7 @@ import { GraphqlAuthGuard } from 'src/auth/guards/auth.guard';
 import GraphQLUpload, {
   type FileUpload,
 } from 'graphql-upload/GraphQLUpload.mjs';
+import { CreateChatroomInput } from '../dtos/inputs/CreateChatroom.input';
 
 @Resolver()
 export class ChatroomResolver {
@@ -39,7 +40,8 @@ export class ChatroomResolver {
     nullable: true,
     resolve: (value) => value.user,
     filter: (payload, variables) => {
-      console.log(payload, variables, payload.typingUserId);
+      //si la condicion es igual, solo me mostrará cuando el usuario logeado (osea yo) este escribiendo
+      //por eso es que debe ser !== . para que me muestre cuando otro este escribiendo
       return variables.userId !== payload.typingUserId;
     },
   })
@@ -47,7 +49,11 @@ export class ChatroomResolver {
     @Args('chatroomId') chatroomId: number,
     @Args('userId') userId: number,
   ) {
-    return this.pubSub.asyncIterableIterator(`userStartedTyping.${chatroomId}`);
+    const res = this.pubSub.asyncIterableIterator(
+      `userStartedTyping.${chatroomId}`,
+    );
+
+    return res;
   }
 
   @Subscription(() => UserEntity, {
@@ -126,10 +132,14 @@ export class ChatroomResolver {
   @UseGuards(GraphqlAuthGuard)
   @Mutation(() => ChatroomEntity)
   async createChatroom(
-    @Args('name') name: string,
+    @Args('createChatroomInput', { type: () => CreateChatroomInput })
+    createChatroomInput: CreateChatroomInput,
     @Context() context: { req: Request },
   ) {
-    return this.chatroomService.createChatroom(name, context.req.user.sub);
+    return this.chatroomService.createChatroom(
+      createChatroomInput,
+      context.req.user.sub,
+    );
   }
 
   @Mutation(() => ChatroomEntity)
@@ -137,7 +147,16 @@ export class ChatroomResolver {
     @Args('chatroomId') chatroomId: number,
     @Args('userIds', { type: () => [Number] }) userIds: number[],
   ) {
+    //VER QUE RETORNA ESTO
     return this.chatroomService.addUsersToChatroom(chatroomId, userIds);
+  }
+
+  @Query(() => ChatroomEntity, {
+    name: 'getChatroomById',
+    description: 'Get a chatroom by id',
+  })
+  async getChatroomById(@Args('chatroomId') chatroomId: number) {
+    return this.chatroomService.getChatroom(chatroomId);
   }
 
   @Query(() => [ChatroomEntity])
