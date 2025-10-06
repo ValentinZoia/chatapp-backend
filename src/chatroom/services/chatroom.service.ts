@@ -5,6 +5,7 @@ import { ErrorManager } from 'src/utils/error.manager';
 import { ChatroomEntity, MessageEntity } from '../entities/chatroom.entity';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { createWriteStream } from 'fs';
+import { CreateChatroomInput } from '../dtos/inputs/CreateChatroom.input';
 
 @Injectable()
 export class ChatroomService {
@@ -15,7 +16,16 @@ export class ChatroomService {
 
   async getChatroom(id: number): Promise<ChatroomEntity> {
     try {
-      const chatroom = await this.prisma.chatroom.findUnique({ where: { id } });
+      const chatroom = await this.prisma.chatroom.findUnique({
+        where: { id },
+        include: {
+          users: {
+            orderBy: {
+              createdAt: 'desc',
+            },
+          },
+        },
+      });
       if (!chatroom) {
         throw new ErrorManager({
           type: 'NOT_FOUND',
@@ -29,7 +39,11 @@ export class ChatroomService {
     }
   }
 
-  async createChatroom(name: string, sub: number): Promise<ChatroomEntity> {
+  async createChatroom(
+    createChatroomInput: CreateChatroomInput,
+    sub: number,
+  ): Promise<ChatroomEntity> {
+    const { name, description, colorHex, image, access } = createChatroomInput;
     try {
       const existingChatroom = await this.prisma.chatroom.findFirst({
         where: {
@@ -47,6 +61,10 @@ export class ChatroomService {
       const createdChatroom = await this.prisma.chatroom.create({
         data: {
           name,
+          description,
+          colorHex,
+          image,
+          access,
           adminId: sub,
           users: {
             connect: {
