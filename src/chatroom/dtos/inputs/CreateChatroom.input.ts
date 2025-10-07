@@ -30,12 +30,13 @@ export class CreateChatroomInput {
   @IsOptional()
   image: string;
 
-  @Field()
-  @IsNotEmpty()
+  @Field({ defaultValue: ChatroomAccess.PRIVATE })
+  @IsOptional()
   @IsEnum(ChatroomAccess)
   access: ChatroomAccess;
 
   @IsArray()
-  @Field(() => [String])
+  @Field(() => [String], { defaultValue: [] })
+  @IsOptional()
   userIds: string[];
 }
