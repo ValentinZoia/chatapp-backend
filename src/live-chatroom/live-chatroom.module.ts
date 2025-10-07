@@ -4,6 +4,7 @@ import { LiveChatroomResolver } from './resolvers/live-chatroom.resolver';
 import { UserService } from 'src/user/services/user.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
+import { ChatroomService } from 'src/chatroom/services/chatroom.service';
 
 @Module({
   providers: [
@@ -12,6 +13,7 @@ import { JwtService } from '@nestjs/jwt';
     UserService,
     PrismaService,
     JwtService,
+    ChatroomService,
   ],
 })
 export class LiveChatroomModule {}
