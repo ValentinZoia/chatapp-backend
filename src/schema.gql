@@ -2,14 +2,33 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+"""Tipos de acceso de la sala de chat"""
+enum ChatroomAccess {
+  PRIVATE
+  PUBLIC
+}
+
 type ChatroomEntity {
+  access: ChatroomAccess!
   adminId: Int
+  colorHex: String
   createdAt: DateTime
+  description: String
   id: Int
+  image: String
   messages: [MessageEntity!]
   name: String
   updatedAt: DateTime
   users: [UserEntity!]
+}
+
+input CreateChatroomInput {
+  access: String! = "PRIVATE"
+  colorHex: String
+  description: String
+  image: String
+  name: String!
+  userIds: [String!]! = []
 }
 
 """
@@ -29,7 +48,7 @@ type LogInResponse {
 type MessageEntity {
   chatroom: ChatroomEntity
   content: String
-  createdAt: DateTime
+  createdAt: DateTime!
   id: Int
   imageUrl: String
   updatedAt: DateTime
@@ -38,7 +57,7 @@ type MessageEntity {
 
 type Mutation {
   addUsersToChatroom(chatroomId: Float!, userIds: [Float!]!): ChatroomEntity!
-  createChatroom(name: String!): ChatroomEntity!
+  createChatroom(createChatroomInput: CreateChatroomInput!): ChatroomEntity!
   deleteChatroom(chatroomId: Float!): String!
   enterChatroom(chatroomId: Float!): Boolean!
   leaveChatroom(chatroomId: Float!): Boolean!
