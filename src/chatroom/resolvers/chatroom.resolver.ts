@@ -19,6 +19,7 @@ import GraphQLUpload, {
   type FileUpload,
 } from 'graphql-upload/GraphQLUpload.mjs';
 import { CreateChatroomInput } from '../dtos/inputs/CreateChatroom.input';
+import { ChatroomAccessGuard } from 'src/auth/guards/chatroom-access.guard';
 
 @Resolver()
 export class ChatroomResolver {
@@ -30,7 +31,16 @@ export class ChatroomResolver {
 
   @Subscription(() => MessageEntity, {
     nullable: true,
-    resolve: (value) => value.newMessage,
+    resolve: (value) => {
+      //EN UN FUTURO SOLUCIONAR ESTO.
+      console.log(
+        'EL CREATE DEL VALUE ES:',
+        value.newMessage.createdAt +
+          'Y SU TIPO ES' +
+          typeof value.newMessage.createdAt,
+      ); //EL CREATE DEL VALUE ES: 2025-10-07T14:51:55.023ZY SU TIPO ESstring
+      return value.newMessage;
+    },
   })
   newMessage(@Args('chatroomId', { type: () => Int }) chatroomId: number) {
     return this.pubSub.asyncIterableIterator(`newMessage.${chatroomId}`);
@@ -77,10 +87,14 @@ export class ChatroomResolver {
     @Context() context: { req: Request },
   ) {
     const user = await this.userService.findUserById(context.req.user.sub);
-    await this.pubSub.publish(`userStartedTyping.${chatroomId}`, {
-      user,
-      typingUserId: user.id,
-    });
+    await this.pubSub
+      .publish(`userStartedTyping.${chatroomId}`, {
+        user,
+        typingUserId: user.id,
+      })
+      .catch((err) => {
+        console.log('StartedTypingErr', err);
+      });
     return user;
   }
 
@@ -117,11 +131,17 @@ export class ChatroomResolver {
       context.req.user.sub,
       imagePath as string,
     );
+    // Asegurarse que createdAt siempre tenga valor
+    if (!newMessage.createdAt) {
+      newMessage.createdAt = new Date();
+    }
+    console.log(
+      'RECIEN CREADO, EL DATE ES:',
+      newMessage.createdAt + 'Y SU TIPO ES' + typeof newMessage.createdAt,
+    );
+
     await this.pubSub
       .publish(`newMessage.${chatroomId}`, { newMessage })
-      .then((res) => {
-        console.log('published', res);
-      })
       .catch((err) => {
         console.log('err', err);
       });
@@ -142,6 +162,7 @@ export class ChatroomResolver {
     );
   }
 
+  @UseGuards(GraphqlAuthGuard)
   @Mutation(() => ChatroomEntity)
   async addUsersToChatroom(
     @Args('chatroomId') chatroomId: number,
@@ -151,23 +172,31 @@ export class ChatroomResolver {
     return this.chatroomService.addUsersToChatroom(chatroomId, userIds);
   }
 
+  @UseGuards(GraphqlAuthGuard, ChatroomAccessGuard)
   @Query(() => ChatroomEntity, {
     name: 'getChatroomById',
     description: 'Get a chatroom by id',
   })
-  async getChatroomById(@Args('chatroomId') chatroomId: number) {
+  async getChatroomById(
+    @Args('chatroomId') chatroomId: number,
+    @Context() context: { req: Request },
+  ) {
     return this.chatroomService.getChatroom(chatroomId);
   }
 
+  // @UseGuards(GraphqlAuthGuard)
   @Query(() => [ChatroomEntity])
   async getChatroomsForUser(@Args('userId') userId: number) {
     return this.chatroomService.getChatroomsForUser(userId);
   }
 
+  @UseGuards(GraphqlAuthGuard, ChatroomAccessGuard)
   @Query(() => [MessageEntity])
   async getMessagesForChatroom(@Args('chatroomId') chatroomId: number) {
     return this.chatroomService.getMessagesForChatroom(chatroomId);
   }
+
+  @UseGuards(GraphqlAuthGuard, ChatroomAccessGuard)
   @Mutation(() => String)
   async deleteChatroom(@Args('chatroomId') chatroomId: number) {
     await this.chatroomService.deleteChatroom(chatroomId);
