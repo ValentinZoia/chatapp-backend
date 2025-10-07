@@ -1,22 +1,27 @@
-import { Field, ObjectType, ID, Int } from '@nestjs/graphql';
+import { Field, ObjectType, ID, Int, registerEnumType } from '@nestjs/graphql';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { ChatroomAccess } from '@prisma/client';
+
+registerEnumType(ChatroomAccess, {
+  name: 'ChatroomAccess', // este nombre aparecerá en el schema
+  description: 'Tipos de acceso de la sala de chat',
+});
 
 @ObjectType()
 export class ChatroomEntity {
   @Field(() => Int, { nullable: true })
   id?: number;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   name?: string;
 
-  @Field({ nullable: true })
-  description: string | null;
+  @Field(() => String, { nullable: true })
+  description?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   colorHex?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   image?: string | null;
 
   @Field(() => ChatroomAccess, { defaultValue: ChatroomAccess.PRIVATE })
@@ -52,10 +57,10 @@ export class MessageEntity {
   @Field(() => String, { nullable: true })
   content?: string;
 
-  @Field({ nullable: true })
-  createdAt?: Date;
+  @Field(() => Date)
+  createdAt: Date;
 
-  @Field({ nullable: true })
+  @Field(() => Date, { nullable: true })
   updatedAt?: Date;
 
   @Field(() => ChatroomEntity, { nullable: true }) // array of user IDs
