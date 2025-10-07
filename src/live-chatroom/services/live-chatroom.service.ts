@@ -53,10 +53,8 @@ export class LiveChatroomService {
         .srem(`liveUsers:chatroom:${chatroomId}`, JSON.stringify(user))
         .catch((err) => {
           console.log('removeLiveUserFromChatroom error', err);
-        })
-        .then((res) => {
-          console.log('removeLiveUserFromChatroom res', res);
         });
+
       return;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
