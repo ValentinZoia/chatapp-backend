@@ -12,6 +12,7 @@ import { Inject, UseGuards } from '@nestjs/common';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { GraphqlAuthGuard } from 'src/auth/guards/auth.guard';
 import { Request } from 'express';
+import { ChatroomAccessGuard } from 'src/auth/guards/chatroom-access.guard';
 @Resolver()
 export class LiveChatroomResolver {
   constructor(
@@ -32,7 +33,7 @@ export class LiveChatroomResolver {
     );
   }
 
-  @UseGuards(GraphqlAuthGuard)
+  @UseGuards(GraphqlAuthGuard, ChatroomAccessGuard)
   @Mutation(() => Boolean)
   async enterChatroom(
     @Args('chatroomId') chatroomId: number,
@@ -57,7 +58,7 @@ export class LiveChatroomResolver {
     return true;
   }
 
-  @UseGuards(GraphqlAuthGuard)
+  @UseGuards(GraphqlAuthGuard, ChatroomAccessGuard)
   @Mutation(() => Boolean)
   async leaveChatroom(
     @Args('chatroomId') chatroomId: number,
