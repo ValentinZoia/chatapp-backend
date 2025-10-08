@@ -20,6 +20,7 @@ import GraphQLUpload, {
 } from 'graphql-upload/GraphQLUpload.mjs';
 import { CreateChatroomInput } from '../dtos/inputs/CreateChatroom.input';
 import { ChatroomAccessGuard } from 'src/auth/guards/chatroom-access.guard';
+// import { TokenName } from 'src/auth/constants/tokens.constants';
 
 @Resolver()
 export class ChatroomResolver {
@@ -186,7 +187,11 @@ export class ChatroomResolver {
 
   // @UseGuards(GraphqlAuthGuard)
   @Query(() => [ChatroomEntity])
-  async getChatroomsForUser(@Args('userId') userId: number) {
+  async getChatroomsForUser(
+    @Args('userId') userId: number,
+    @Context() context: { req: Request },
+  ) {
+    // if (!context.req.cookies[TokenName.ACCESS]) return [];
     return this.chatroomService.getChatroomsForUser(userId);
   }
 
