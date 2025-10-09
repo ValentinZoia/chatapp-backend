@@ -11,9 +11,14 @@ import { TokenService } from './token/token.service';
 import { ChatroomModule } from './chatroom/chatroom.module';
 import { LiveChatroomModule } from './live-chatroom/live-chatroom.module';
 import { PubSubModule } from './PubSub/pubsub.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
 
 @Module({
   imports: [
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'public'), // carpeta pública
+      serveRoot: '/', // opcional: si querés que sea accesible desde la raíz
+    }),
     // GraphQLModule.forRoot<ApolloDriverConfig>({
     //   driver: ApolloDriver,
     //   autoSchemaFile: join(process.cwd(), 'src/schema.gql'), //code first
