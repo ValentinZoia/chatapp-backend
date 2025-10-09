@@ -19,6 +19,7 @@ async function bootstrap() {
       'Authorization',
       'Accept',
       'X-Requested-With',
+      'x-apollo-operation-name',
       'apollo-require-preflight', //!important
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
