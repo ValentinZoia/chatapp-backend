@@ -164,13 +164,17 @@ export class ChatroomResolver {
   }
 
   @UseGuards(GraphqlAuthGuard)
-  @Mutation(() => ChatroomEntity)
+  @Mutation(() => String)
   async addUsersToChatroom(
     @Args('chatroomId') chatroomId: number,
     @Args('userIds', { type: () => [Number] }) userIds: number[],
   ) {
     //VER QUE RETORNA ESTO
-    return this.chatroomService.addUsersToChatroom(chatroomId, userIds);
+    const chatroomName = await this.chatroomService.addUsersToChatroom(
+      chatroomId,
+      userIds,
+    );
+    return `Users added to chatroom ${chatroomName} successfully`;
   }
 
   @UseGuards(GraphqlAuthGuard, ChatroomAccessGuard)

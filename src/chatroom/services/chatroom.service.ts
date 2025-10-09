@@ -80,7 +80,10 @@ export class ChatroomService {
     }
   }
 
-  async addUsersToChatroom(chatroomId: number, userIds: number[]) {
+  async addUsersToChatroom(
+    chatroomId: number,
+    userIds: number[],
+  ): Promise<String> {
     try {
       const existingChatroom = await this.prisma.chatroom.findUnique({
         where: {
@@ -95,7 +98,7 @@ export class ChatroomService {
         });
       }
 
-      await this.prisma.chatroom.update({
+      const updatedChatroom = await this.prisma.chatroom.update({
         where: {
           id: chatroomId,
         },
@@ -105,6 +108,8 @@ export class ChatroomService {
           },
         },
       });
+
+      return updatedChatroom.name;
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }

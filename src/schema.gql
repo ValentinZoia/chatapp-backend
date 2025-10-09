@@ -56,7 +56,7 @@ type MessageEntity {
 }
 
 type Mutation {
-  addUsersToChatroom(chatroomId: Float!, userIds: [Float!]!): ChatroomEntity!
+  addUsersToChatroom(chatroomId: Float!, userIds: [Float!]!): String!
   createChatroom(createChatroomInput: CreateChatroomInput!): ChatroomEntity!
   deleteChatroom(chatroomId: Float!): String!
   enterChatroom(chatroomId: Float!): Boolean!
