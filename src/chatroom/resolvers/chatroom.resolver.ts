@@ -33,13 +33,6 @@ export class ChatroomResolver {
   @Subscription(() => MessageEntity, {
     nullable: true,
     resolve: (value) => {
-      //EN UN FUTURO SOLUCIONAR ESTO.
-      console.log(
-        'EL CREATE DEL VALUE ES:',
-        value.newMessage.createdAt +
-          'Y SU TIPO ES' +
-          typeof value.newMessage.createdAt,
-      ); //EL CREATE DEL VALUE ES: 2025-10-07T14:51:55.023ZY SU TIPO ESstring
       return value.newMessage;
     },
   })
