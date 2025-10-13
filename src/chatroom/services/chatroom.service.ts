@@ -6,6 +6,7 @@ import { ChatroomEntity, MessageEntity } from '../entities/chatroom.entity';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { createWriteStream } from 'fs';
 import { CreateChatroomInput } from '../dtos/inputs/CreateChatroom.input';
+import { PaginatedMessage } from '../dtos/responses/message.responses';
 
 @Injectable()
 export class ChatroomService {
@@ -208,12 +209,35 @@ export class ChatroomService {
     }
   }
 
-  async getMessagesForChatroom(chatroomId: number) {
+  async getMessagesForChatroom(
+    chatroomId: number,
+    take: number,
+    cursor?: number,
+  ): Promise<PaginatedMessage> {
     try {
-      return await this.prisma.message.findMany({
+      // Limitar el tamaño maximo de la pagina, maximo 50
+      const limit = Math.min(take, 50);
+
+      // Configurar el cursor, el cursor es la referencia de cual fue el ultimo mensaje cargado, mediante su id.
+      let cursorOption: { cursor?: { id: number }; skip?: number } = {};
+      if (cursor) {
+        cursorOption = {
+          cursor: { id: cursor },
+          skip: 1, // para que no me traiga el ultimo mensaje que ya tengo
+        };
+      } else {
+        cursorOption = {
+          cursor: undefined,
+          skip: undefined,
+        };
+      }
+
+      const messages = await this.prisma.message.findMany({
         where: {
           chatroomId: chatroomId,
         },
+        cursor: cursorOption.cursor,
+        skip: cursorOption.skip,
         include: {
           chatroom: {
             include: {
@@ -224,9 +248,39 @@ export class ChatroomService {
               }, // Eager loading users
             },
           }, // Eager loading Chatroom
-          user: true, // Eager loading User
+          user: {
+            select: {
+              id: true,
+              avatarUrl: true,
+              fullname: true,
+            },
+          },
+        },
+        take: limit + 1,
+        orderBy: {
+          createdAt: 'desc',
         },
       });
+
+      //Verificar si hay mensajes
+      const hasNextPage = messages.length > limit;
+
+      //Remover mensaje extra si existe
+      const nodes = hasNextPage ? messages.slice(0, -1) : messages;
+
+      //Obtener cursor para siguiente pagina ,(el id del ultimo mensaje)
+      const endCursor = nodes.length > 0 ? nodes[nodes.length - 1].id : null;
+
+      return {
+        edges: nodes.map((message) => ({ node: message, cursor: message.id })),
+        pageInfo: {
+          hasNextPage,
+          endCursor,
+        },
+        totalCount: await this.prisma.message.count({
+          where: { chatroomId },
+        }),
+      };
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }

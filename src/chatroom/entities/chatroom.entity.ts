@@ -64,10 +64,10 @@ export class MessageEntity {
   updatedAt?: Date;
 
   @Field(() => ChatroomEntity, { nullable: true }) // array of user IDs
-  chatroom?: ChatroomEntity;
+  chatroom?: ChatroomEntity | null;
 
   @Field(() => UserEntity, { nullable: true }) // array of user IDs
-  user?: UserEntity;
+  user?: UserEntity | null;
 }
 
 @ObjectType()

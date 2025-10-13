@@ -20,6 +20,7 @@ import GraphQLUpload, {
 } from 'graphql-upload/GraphQLUpload.mjs';
 import { CreateChatroomInput } from '../dtos/inputs/CreateChatroom.input';
 import { ChatroomAccessGuard } from 'src/auth/guards/chatroom-access.guard';
+import { PaginatedMessage } from '../dtos/responses/message.responses';
 // import { TokenName } from 'src/auth/constants/tokens.constants';
 
 @Resolver()
@@ -194,8 +195,16 @@ export class ChatroomResolver {
 
   @UseGuards(GraphqlAuthGuard, ChatroomAccessGuard)
   @Query(() => [MessageEntity])
-  async getMessagesForChatroom(@Args('chatroomId') chatroomId: number) {
-    return this.chatroomService.getMessagesForChatroom(chatroomId);
+  async getMessagesForChatroom(
+    @Args('chatroomId') chatroomId: number,
+    @Args('take', { type: () => Int, defaultValue: 20 }) take: number,
+    @Args('cursor', { type: () => Int, nullable: true }) cursor?: number,
+  ): Promise<PaginatedMessage> {
+    return this.chatroomService.getMessagesForChatroom(
+      chatroomId,
+      take,
+      cursor,
+    );
   }
 
   @UseGuards(GraphqlAuthGuard, ChatroomAccessGuard)
