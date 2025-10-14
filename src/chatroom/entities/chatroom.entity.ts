@@ -48,14 +48,14 @@ export class ChatroomEntity {
 
 @ObjectType()
 export class MessageEntity {
-  @Field(() => Int, { nullable: true })
-  id?: number;
+  @Field(() => Int)
+  id: number;
 
   @Field(() => String, { nullable: true })
   imageUrl: string | null;
 
-  @Field(() => String, { nullable: true })
-  content?: string;
+  @Field(() => String)
+  content: string;
 
   @Field(() => Date)
   createdAt: Date;
@@ -66,8 +66,8 @@ export class MessageEntity {
   @Field(() => ChatroomEntity, { nullable: true }) // array of user IDs
   chatroom?: ChatroomEntity | null;
 
-  @Field(() => UserEntity, { nullable: true }) // array of user IDs
-  user?: UserEntity | null;
+  @Field(() => UserEntity) // array of user IDs
+  user: UserEntity | null;
 }
 
 @ObjectType()

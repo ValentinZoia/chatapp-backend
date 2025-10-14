@@ -11,7 +11,7 @@ import {
 import { PubSub } from 'graphql-subscriptions';
 import { ChatroomService } from '../services/chatroom.service';
 import { UserService } from 'src/user/services/user.service';
-import { ChatroomEntity, MessageEntity } from '../entities/chatroom.entity';
+import { ChatroomEntity } from '../entities/chatroom.entity';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { Request } from 'express';
 import { GraphqlAuthGuard } from 'src/auth/guards/auth.guard';
@@ -20,7 +20,10 @@ import GraphQLUpload, {
 } from 'graphql-upload/GraphQLUpload.mjs';
 import { CreateChatroomInput } from '../dtos/inputs/CreateChatroom.input';
 import { ChatroomAccessGuard } from 'src/auth/guards/chatroom-access.guard';
-import { PaginatedMessage } from '../dtos/responses/message.responses';
+import {
+  PaginatedMessage,
+  MessageEdge,
+} from '../dtos/responses/message.responses';
 // import { TokenName } from 'src/auth/constants/tokens.constants';
 
 @Resolver()
@@ -31,7 +34,7 @@ export class ChatroomResolver {
     private readonly userService: UserService,
   ) {}
 
-  @Subscription(() => MessageEntity, {
+  @Subscription(() => MessageEdge, {
     nullable: true,
     resolve: (value) => {
       return value.newMessage;
@@ -110,16 +113,17 @@ export class ChatroomResolver {
   }
 
   @UseGuards(GraphqlAuthGuard)
-  @Mutation(() => MessageEntity)
+  @Mutation(() => MessageEdge)
   async sendMessage(
     @Args('chatroomId') chatroomId: number,
     @Args('content') content: string,
     @Context() context: { req: Request },
     @Args('image', { type: () => GraphQLUpload, nullable: true })
     image?: FileUpload,
-  ) {
+  ): Promise<MessageEdge> {
     let imagePath: string | null = null;
     if (image) imagePath = await this.chatroomService.saveImage(image);
+
     const newMessage = await this.chatroomService.sendMessage(
       chatroomId,
       content,
@@ -127,13 +131,9 @@ export class ChatroomResolver {
       imagePath as string,
     );
     // Asegurarse que createdAt siempre tenga valor
-    if (!newMessage.createdAt) {
-      newMessage.createdAt = new Date();
+    if (!newMessage.node.createdAt) {
+      newMessage.node.createdAt = new Date();
     }
-    console.log(
-      'RECIEN CREADO, EL DATE ES:',
-      newMessage.createdAt + 'Y SU TIPO ES' + typeof newMessage.createdAt,
-    );
 
     await this.pubSub
       .publish(`newMessage.${chatroomId}`, { newMessage })
@@ -194,7 +194,7 @@ export class ChatroomResolver {
   }
 
   @UseGuards(GraphqlAuthGuard, ChatroomAccessGuard)
-  @Query(() => [MessageEntity])
+  @Query(() => PaginatedMessage, { name: 'getMessagesForChatroom' })
   async getMessagesForChatroom(
     @Args('chatroomId') chatroomId: number,
     @Args('take', { type: () => Int, defaultValue: 20 }) take: number,

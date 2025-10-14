@@ -2,11 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ErrorManager } from 'src/utils/error.manager';
-import { ChatroomEntity, MessageEntity } from '../entities/chatroom.entity';
-import { UserEntity } from 'src/user/entities/user.entity';
+import { ChatroomEntity } from '../entities/chatroom.entity';
 import { createWriteStream } from 'fs';
 import { CreateChatroomInput } from '../dtos/inputs/CreateChatroom.input';
-import { PaginatedMessage } from '../dtos/responses/message.responses';
+import {
+  MessageEdge,
+  PaginatedMessage,
+} from '../dtos/responses/message.responses';
 
 @Injectable()
 export class ChatroomService {
@@ -134,6 +136,14 @@ export class ChatroomService {
           },
           messages: {
             //para mostrar el ult mensaje
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  fullname: true,
+                },
+              },
+            },
             take: 1,
             orderBy: {
               createdAt: 'desc',
@@ -153,7 +163,7 @@ export class ChatroomService {
     message: string,
     userId: number,
     imagePath: string,
-  ) {
+  ): Promise<MessageEdge> {
     try {
       const messageCreated = await this.prisma.message.create({
         data: {
@@ -171,7 +181,7 @@ export class ChatroomService {
           user: true, // Eager loading User
         },
       });
-      return messageCreated;
+      return { node: messageCreated, cursor: messageCreated.id };
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }
@@ -272,7 +282,9 @@ export class ChatroomService {
       const endCursor = nodes.length > 0 ? nodes[nodes.length - 1].id : null;
 
       return {
-        edges: nodes.map((message) => ({ node: message, cursor: message.id })),
+        edges: nodes
+          .map((message) => ({ node: message, cursor: message.id }))
+          .reverse(),
         pageInfo: {
           hasNextPage,
           endCursor,

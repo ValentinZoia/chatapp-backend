@@ -45,14 +45,19 @@ type LogInResponse {
   user: UserEntity!
 }
 
+type MessageEdge {
+  cursor: Int!
+  node: MessageEntity!
+}
+
 type MessageEntity {
   chatroom: ChatroomEntity
-  content: String
+  content: String!
   createdAt: DateTime!
-  id: Int
+  id: Int!
   imageUrl: String
   updatedAt: DateTime
-  user: UserEntity
+  user: UserEntity!
 }
 
 type Mutation {
@@ -73,12 +78,23 @@ type Mutation {
 
   """register user"""
   register(RegisterInput: RegisterInput!): RegisterResponse!
-  sendMessage(chatroomId: Float!, content: String!, image: Upload): MessageEntity!
+  sendMessage(chatroomId: Float!, content: String!, image: Upload): MessageEdge!
 
   """Update user profile"""
   updateUserProfile(file: Upload, fullname: String!): UserEntity!
   userStartedTypingMutation(chatroomId: Float!): UserEntity!
   userStoppedTypingMutation(chatroomId: Float!): UserEntity!
+}
+
+type PageInfo {
+  endCursor: Int
+  hasNextPage: Boolean!
+}
+
+type PaginatedMessage {
+  edges: [MessageEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
 }
 
 type Query {
@@ -91,7 +107,7 @@ type Query {
   """Get a chatroom by id"""
   getChatroomById(chatroomId: Float!): ChatroomEntity!
   getChatroomsForUser(userId: Float!): [ChatroomEntity!]!
-  getMessagesForChatroom(chatroomId: Float!): [MessageEntity!]!
+  getMessagesForChatroom(chatroomId: Float!, cursor: Int, take: Int! = 20): PaginatedMessage!
   getUsersOfChatroom(chatroomId: Float!): [UserEntity!]!
 
   """just return hello"""
@@ -112,7 +128,7 @@ type RegisterResponse {
 
 type Subscription {
   liveUsersInChatroom(chatroomId: Float!): [UserEntity!]
-  newMessage(chatroomId: Int!): MessageEntity
+  newMessage(chatroomId: Int!): MessageEdge
   userStartedTyping(chatroomId: Float!, userId: Float!): UserEntity
   userStoppedTyping(chatroomId: Float!, userId: Float!): UserEntity
 }
