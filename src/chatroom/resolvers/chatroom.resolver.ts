@@ -37,6 +37,7 @@ export class ChatroomResolver {
   @Subscription(() => MessageEdge, {
     nullable: true,
     resolve: (value) => {
+      console.log('value' + JSON.stringify(value));
       return value.newMessage;
     },
   })
