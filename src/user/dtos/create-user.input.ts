@@ -1,6 +1,7 @@
 import { Field, InputType } from '@nestjs/graphql';
 import { IsNotEmpty, IsString } from 'class-validator';
 
+// Define the CreateUserInput class for GraphQL mutations
 @InputType()
 export class CreateUserInput {
   @IsNotEmpty()
