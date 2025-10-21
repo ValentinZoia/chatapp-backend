@@ -82,7 +82,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
     ChatroomModule,
     LiveChatroomModule,
   ],
-
+  
   providers: [PrismaService, TokenService],
 })
 export class AppModule {}

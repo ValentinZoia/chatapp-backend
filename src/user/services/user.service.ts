@@ -6,7 +6,7 @@ import { ErrorManager } from 'src/utils/error.manager';
 
 @Injectable()
 export class UserService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async updateUser(updateUserInput: UpdateUserInput): Promise<UserEntity> {
     try {
