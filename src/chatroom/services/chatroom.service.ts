@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { ErrorManager } from 'src/utils/error.manager';
+import { PrismaService } from '@/src/prisma/prisma.service';
+import { ErrorManager } from '@/src/utils/error.manager';
 import { ChatroomEntity } from '../entities/chatroom.entity';
 import { createWriteStream } from 'fs';
 import { CreateChatroomInput } from '../dtos/inputs/CreateChatroom.input';
@@ -15,7 +15,7 @@ export class ChatroomService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   async getChatroom(id: number): Promise<ChatroomEntity> {
     try {
@@ -46,6 +46,7 @@ export class ChatroomService {
     createChatroomInput: CreateChatroomInput,
     sub: number,
   ): Promise<ChatroomEntity> {
+
     const { name, description, colorHex, image, access } = createChatroomInput;
     try {
       const existingChatroom = await this.prisma.chatroom.findFirst({
