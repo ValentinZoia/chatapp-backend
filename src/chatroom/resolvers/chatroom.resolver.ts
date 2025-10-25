@@ -32,7 +32,7 @@ export class ChatroomResolver {
     @Inject('PUB_SUB') private pubSub: PubSub,
     private readonly chatroomService: ChatroomService,
     private readonly userService: UserService,
-  ) {}
+  ) { }
 
   @Subscription(() => MessageEdge, {
     nullable: true,
@@ -83,9 +83,9 @@ export class ChatroomResolver {
   @Mutation((returns) => UserEntity)
   async userStartedTypingMutation(
     @Args('chatroomId') chatroomId: number,
-    @Context() context: { req: Request },
+    @Context() { req }: { req: Request },
   ) {
-    const user = await this.userService.findUserById(context.req.user.sub);
+    const user = await this.userService.findUserById(req.user.sub);
     await this.pubSub
       .publish(`userStartedTyping.${chatroomId}`, {
         user,
@@ -101,9 +101,9 @@ export class ChatroomResolver {
   @Mutation(() => UserEntity, {})
   async userStoppedTypingMutation(
     @Args('chatroomId') chatroomId: number,
-    @Context() context: { req: Request },
+    @Context() { req }: { req: Request },
   ) {
-    const user = await this.userService.findUserById(context.req.user.sub);
+    const user = await this.userService.findUserById(req.user.sub);
 
     await this.pubSub.publish(`userStoppedTyping.${chatroomId}`, {
       user,
@@ -118,7 +118,7 @@ export class ChatroomResolver {
   async sendMessage(
     @Args('chatroomId') chatroomId: number,
     @Args('content') content: string,
-    @Context() context: { req: Request },
+    @Context() { req }: { req: Request },
     @Args('image', { type: () => GraphQLUpload, nullable: true })
     image?: FileUpload,
   ): Promise<MessageEdge> {
@@ -128,7 +128,7 @@ export class ChatroomResolver {
     const newMessage = await this.chatroomService.sendMessage(
       chatroomId,
       content,
-      context.req.user.sub,
+      req.user.sub,
       imagePath as string,
     );
     // Asegurarse que createdAt siempre tenga valor
@@ -150,11 +150,11 @@ export class ChatroomResolver {
   async createChatroom(
     @Args('createChatroomInput', { type: () => CreateChatroomInput })
     createChatroomInput: CreateChatroomInput,
-    @Context() context: { req: Request },
+    @Context() { req }: { req: Request },
   ) {
     return this.chatroomService.createChatroom(
       createChatroomInput,
-      context.req.user.sub,
+      req.user.sub,
     );
   }
 
@@ -179,7 +179,7 @@ export class ChatroomResolver {
   })
   async getChatroomById(
     @Args('chatroomId') chatroomId: number,
-    @Context() context: { req: Request },
+    @Context() { req }: { req: Request },
   ) {
     return this.chatroomService.getChatroom(chatroomId);
   }
@@ -188,9 +188,9 @@ export class ChatroomResolver {
   @Query(() => [ChatroomEntity])
   async getChatroomsForUser(
     @Args('userId') userId: number,
-    @Context() context: { req: Request },
+    @Context() { req }: { req: Request },
   ) {
-    // if (!context.req.cookies[TokenName.ACCESS]) return [];
+    // if (!req.cookies[TokenName.ACCESS]) return [];
     return this.chatroomService.getChatroomsForUser(userId);
   }
 
