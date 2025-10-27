@@ -24,6 +24,7 @@ import {
   PaginatedMessage,
   MessageEdge,
 } from '../dtos/responses/message.responses';
+import { storeImageAndGetUrl } from '@/src/utils/storeImage';
 // import { TokenName } from 'src/auth/constants/tokens.constants';
 
 @Resolver()
@@ -37,7 +38,6 @@ export class ChatroomResolver {
   @Subscription(() => MessageEdge, {
     nullable: true,
     resolve: (value) => {
-      console.log('value' + JSON.stringify(value));
       return value.newMessage;
     },
   })
@@ -123,7 +123,7 @@ export class ChatroomResolver {
     image?: FileUpload,
   ): Promise<MessageEdge> {
     let imagePath: string | null = null;
-    if (image) imagePath = await this.chatroomService.saveImage(image);
+    if (image) imagePath = await storeImageAndGetUrl(image)
 
     const newMessage = await this.chatroomService.sendMessage(
       chatroomId,
@@ -214,4 +214,5 @@ export class ChatroomResolver {
     await this.chatroomService.deleteChatroom(chatroomId);
     return 'Chatroom deleted successfully';
   }
+
 }
