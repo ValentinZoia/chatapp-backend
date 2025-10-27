@@ -67,7 +67,7 @@ export class MessageEntity {
   chatroom?: ChatroomEntity | null;
 
   @Field(() => UserEntity) // array of user IDs
-  user: UserEntity | null;
+  user: Omit<UserEntity, "password"> | null;
 }
 
 @ObjectType()
@@ -80,4 +80,4 @@ export class UserTypingEntity {
 }
 
 @ObjectType()
-export class UserStoppedTypingEntity extends UserTypingEntity {}
+export class UserStoppedTypingEntity extends UserTypingEntity { }
