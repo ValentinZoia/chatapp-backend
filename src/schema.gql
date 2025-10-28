@@ -106,6 +106,9 @@ type Query {
 
   """Get a chatroom by id"""
   getChatroomById(chatroomId: Float!): ChatroomEntity!
+
+  """Get chatrooms for search functionality"""
+  getChatroomsForSearch(limit: Int, searchTerm: String!): SearchChatroomsResult!
   getChatroomsForUser(userId: Float!): [ChatroomEntity!]!
   getMessagesForChatroom(chatroomId: Float!, cursor: Int, take: Int! = 20): PaginatedMessage!
   getUsersOfChatroom(chatroomId: Float!): [UserEntity!]!
@@ -124,6 +127,11 @@ input RegisterInput {
 
 type RegisterResponse {
   user: UserEntity
+}
+
+type SearchChatroomsResult {
+  chatrooms: [ChatroomEntity!]!
+  totalCount: Int!
 }
 
 type Subscription {
