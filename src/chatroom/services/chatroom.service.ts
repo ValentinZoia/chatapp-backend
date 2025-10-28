@@ -9,6 +9,8 @@ import {
   MessageEdge,
   PaginatedMessage,
 } from '../dtos/responses/message.responses';
+import { ChatroomAccess } from '@prisma/client';
+import { SearchChatroomsResult } from '../dtos/responses/getAllChatrooms.response';
 
 @Injectable()
 export class ChatroomService {
@@ -37,6 +39,97 @@ export class ChatroomService {
       }
 
       return chatroom;
+    } catch (error) {
+      throw ErrorManager.createSignatureError(error.message);
+    }
+  }
+
+  async getChatroomsForSearch(
+    searchTerm: string,
+    limit: number,
+    userId: number,
+  ): Promise<SearchChatroomsResult> {
+    try {
+      // Sanitizar el término de búsqueda
+      const sanitizedTerm = searchTerm.trim();
+
+      if (!sanitizedTerm) {
+        return {
+          chatrooms: [],
+          totalCount: 0,
+        };
+      }
+
+      // Construir el where clause para buscar en salas públicas
+      // O salas privadas donde el usuario es miembro
+      const whereClause = {
+        OR: [
+          {
+            // Salas públicas que coincidan con la búsqueda
+            access: ChatroomAccess.PUBLIC,
+            name: {
+              contains: sanitizedTerm,
+              mode: 'insensitive' as const,
+            },
+          },
+          {
+            // Salas donde el usuario es miembro que coincidan con la búsqueda
+            users: {
+              some: {
+                id: userId,
+              },
+            },
+            name: {
+              contains: sanitizedTerm,
+              mode: 'insensitive' as const,
+            },
+          },
+        ],
+      };
+
+      // Obtener el conteo total
+      const totalCount = await this.prisma.chatroom.count({
+        where: whereClause,
+      });
+
+      // Obtener los chatrooms con límite
+      const chatrooms = await this.prisma.chatroom.findMany({
+        where: whereClause,
+        take: limit,
+        orderBy: [
+          // Priorizar salas donde el usuario es miembro
+          {
+            users: {
+              _count: 'desc',
+            },
+          },
+          // Luego por fecha de creación
+          {
+            createdAt: 'desc',
+          },
+        ],
+        include: {
+          users: {
+            take: 3, // Solo los primeros 3 usuarios para preview
+            select: {
+              id: true,
+              fullname: true,
+              avatarUrl: true,
+            },
+          },
+          _count: {
+            select: {
+              users: true,
+              messages: true,
+            },
+          },
+        },
+      });
+
+      return {
+        chatrooms,
+        totalCount,
+      };
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
     }
