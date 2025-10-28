@@ -25,6 +25,7 @@ import {
   MessageEdge,
 } from '../dtos/responses/message.responses';
 import { storeImageAndGetUrl } from '@/src/utils/storeImage';
+import { SearchChatroomsResult } from '../dtos/responses/getAllChatrooms.response';
 // import { TokenName } from 'src/auth/constants/tokens.constants';
 
 @Resolver()
@@ -170,6 +171,18 @@ export class ChatroomResolver {
       userIds,
     );
     return `Users added to chatroom ${chatroomName} successfully`;
+  }
+
+
+  @UseGuards(GraphqlAuthGuard)
+  @Query(() => SearchChatroomsResult, { name: 'getChatroomsForSearch', description: 'Get chatrooms for search functionality' })
+  async getChatroomsForSearch(
+    @Args('searchTerm') searchTerm: string,
+    @Args('limit', { type: () => Int, nullable: true }) limit: number,
+    @Context() { req }: { req: Request }
+  ) {
+    return await this.chatroomService.getChatroomsForSearch(searchTerm, limit, req.user.sub);
+
   }
 
   @UseGuards(GraphqlAuthGuard, ChatroomAccessGuard)
