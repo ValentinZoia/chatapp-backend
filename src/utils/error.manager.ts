@@ -20,3 +20,14 @@ export class ErrorManager extends Error {
     }
   }
 }
+
+/*
+Ejemplo de respuesta de error:
+
+{
+  "statusCode": 400,
+  "message": "Bad Request :: El correo electrónico ya está en uso",
+  "error": "Bad Request"
+}
+
+*/
