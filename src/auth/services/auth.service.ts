@@ -1,8 +1,5 @@
 import {
-  BadRequestException,
-  HttpException,
   Injectable,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -23,13 +20,15 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   async register(
     credentials: RegisterInput,
     response: Response,
   ): Promise<RegisterResponse> {
     try {
+
+      // 1 - Verificar que coincidan las contraseñas
       if (credentials.password !== credentials.confirmPassword) {
         throw new ErrorManager({
           type: 'BAD_REQUEST',
@@ -37,18 +36,36 @@ export class AuthService {
         });
       }
 
-      const existingUser = await this.prisma.user.findUnique({
+      // 2 - Validar que no exista otro usuario con el mismo email o fullname
+      const existingEmailUser = await this.prisma.user.findUnique({
         where: {
+
           email: credentials.email,
         },
       });
-      if (existingUser) {
+      if (existingEmailUser) {
         throw new ErrorManager({
           type: 'BAD_REQUEST',
           message: 'Email already exists',
         });
       }
+      const existingFullNameUser = await this.prisma.user.findUnique({
+        where: {
+
+          fullname: credentials.fullname,
+        },
+      });
+      if (existingFullNameUser) {
+        throw new ErrorManager({
+          type: 'BAD_REQUEST',
+          message: 'FullName already exists',
+        });
+      }
+
+      // 3 - Hashear la contraseña
       const hashedPassword = await bcrypt.hash(credentials.password, 10);
+
+      // 4 - Crear el usuario
       const user = await this.prisma.user.create({
         data: {
           fullname: credentials.fullname,
@@ -56,6 +73,8 @@ export class AuthService {
           password: hashedPassword,
         },
       });
+
+      //5 - Crear tokens y establecer cookies
       return this.issueTokens(user, response);
     } catch (error) {
       throw ErrorManager.createSignatureError(error.message);
@@ -67,6 +86,7 @@ export class AuthService {
     response: Response,
   ): Promise<LogInResponse> {
     try {
+      // 1 - Validar que exista el usuario y la contraseña sea correcta
       const user = await this.validateUser(credentials);
       if (!user) {
         throw new ErrorManager({
@@ -83,6 +103,7 @@ export class AuthService {
 
   async logout(response: Response): Promise<string> {
     try {
+      // 1 - Limpiar las cookies
       response.clearCookie(TokenName.ACCESS);
       response.clearCookie(TokenName.REFRESH);
 
