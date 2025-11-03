@@ -6,15 +6,17 @@ import { type Response, type Request } from 'express';
 import { LogInInput } from 'src/auth/dtos/inputs/login.input';
 import { BadRequestException } from '@nestjs/common';
 import { Res } from '../decorators/response.decorator';
+import { seconds, Throttle } from '@nestjs/throttler';
 
 @Resolver()
 export class AuthResolver {
-  constructor(private readonly aurhService: AuthService) {}
+  constructor(private readonly aurhService: AuthService) { }
 
   @Mutation(() => RegisterResponse, {
     name: 'register',
     description: 'register user',
   })
+  @Throttle({ short: { limit: 1, ttl: seconds(5) } }) // RateLimit mas estricto - 1 por 5 segundos
   async register(
     @Args('RegisterInput', { type: () => RegisterInput })
     credentials: RegisterInput,
