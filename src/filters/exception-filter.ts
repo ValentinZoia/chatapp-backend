@@ -51,7 +51,7 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
     // Otros errores
     return new GraphQLError(exception.message, {
       extensions: {
-        code: `HTTP_${exception.getStatus()}`,
+        code: `${exception.getStatus()}`,
       },
     });
   }
