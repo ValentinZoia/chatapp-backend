@@ -96,3 +96,42 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+
+### Anotaciones
+
+Comprobar redis corriendo
+
+```bash
+# Redis corriendo?
+$ redis-cli ping
+# Respuesta esperada: PONG
+
+# Si no está corriendo:
+$ docker run -d -p 6379:6379 redis:alpine
+
+# Ver logs de Redis
+$ docker logs chatapp-redis -f
+
+# ============================================
+# Comandos útiles
+# ============================================
+
+# Levantar servicios
+# docker-compose up -d
+
+# Ver logs
+# docker-compose logs -f
+
+# Conectar a Redis (con password)
+# docker exec -it chatapp-redis redis-cli -a redis123
+
+# Conectar a PostgreSQL
+# docker exec -it chatapp-postgres psql -U valenzo -d chatappdb
+
+# Apagar servicios
+# docker-compose down
+
+# Apagar y borrar datos
+# docker-compose down -v
+
+```

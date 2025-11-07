@@ -3,17 +3,24 @@ import { AppModule } from './app.module';
 import cookieParser from 'cookie-parser';
 import graphqlUploadExpress from 'graphql-upload/graphqlUploadExpress.mjs';
 import { BadRequestException, ValidationPipe } from '@nestjs/common';
-import { GraphQLExceptionFilter } from './filters/exception-filter';
+import { GraphQLExceptionFilter } from './common/filters/graphql-exception.filter';
+import { ConfigService } from '@nestjs/config';
+import { ILogger } from './common/interfaces/logger.interface';
+import { LOGGER_SERVICE } from './common/constants/logger.constants';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
-    logger: ['error', 'warn'], // Solo errores y warnings, no debug
+    bufferLogs: true,
   });
+
+  //Logger personalizado - usando winston
+  const logger = app.get<ILogger>(LOGGER_SERVICE);
+  app.useLogger(logger);
 
   //CORS
   app.enableCors({
     origin: 'http://localhost:5173',
-    credentials: true,
+    credentials: true,//habilitar uso de cookies
     allowedHeaders: [
       'Content-Type',
       'Authorization',
@@ -31,7 +38,9 @@ async function bootstrap() {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   app.use(graphqlUploadExpress({ maxFileSize: 10000000, maxFiles: 1 }));
 
-  //configuracion inicial para manejar dto con class validator
+
+
+  //configuracion de validacion global inicial para manejar dto con class validator
   app.useGlobalPipes(
     new ValidationPipe({
       transformOptions: { enableImplicitConversion: true },
@@ -53,8 +62,30 @@ async function bootstrap() {
       },
     }),
   );
-  app.useGlobalFilters(new GraphQLExceptionFilter());
-  await app.listen(process.env.PORT ?? 3000);
-  console.log(`Application is running on: ${await app.getUrl()}`);
+
+  //Establecer exceptions-filters globales
+  app.useGlobalFilters(new GraphQLExceptionFilter(logger));
+
+  // Obtener configuración
+  const configService = app.get(ConfigService);
+  const port = configService.get<number>('PORT', 3000);
+  const nodeEnv = configService.get<string>('NODE_ENV', 'development');
+
+  await app.listen(port);
+
+  logger.log(
+    `Application is running in ${nodeEnv} mode on: http://localhost:${port}`,//message
+    'Bootstrap', //Context
+  );
+  logger.log(
+    `GraphQL Playground available at: http://localhost:${port}/graphql`,
+    'Bootstrap',
+  );
+
+  // console.log(`Application is running in ${nodeEnv} mode on: http://localhost:${port}`);
+  // console.log(`GraphQL Playground available at: http://localhost:${port}/graphql`)
 }
-void bootstrap();
+void bootstrap().catch((error) => {
+  console.error('Failed to start application:', error);
+  process.exit(1);
+});;

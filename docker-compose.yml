@@ -1,23 +1,70 @@
-
 services:
-
   postgres:
     image: postgres:17.6
     container_name: chatapp-container
-    restart: always
+    restart:
+      unless-stopped
+      # Política de reinicio del contenedor:
+    #   - no: nunca reinicia automáticamente
+    #   - always: siempre reinicia (incluso después de reboot del servidor)
+    #   - on-failure: solo si falla (exit code != 0)
+    #   - unless-stopped: siempre reinicia SALVO que lo hayas parado manualmente
     environment:
-      POSTGRES_USER: valenzo
-      POSTGRES_PASSWORD: chat123
-      POSTGRES_DB: chatappdb
+      POSTGRES_USER: ${POSTGRES_USER:-valenzo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-chat123}
+      POSTGRES_DB: ${POSTGRES_DB_NAME:-chatappdb}
     ports:
-      - "5432:5432"
+      - '${POSTGRES_PORT:-5432}:5432'
     volumes:
+      # Persistir datos fuera del contenedor
       - postgres_data:/var/lib/postgresql/data
-  
+      # "postgres_data" = nombre del volume (definido abajo)
+      # ":/var/lib/postgresql/data" = ruta dentro del contenedor donde Postgres guarda los datos
+      # Sin esto: si borras el contenedor, pierdes todos los datos
+      # Con esto: los datos sobreviven incluso si borras el contenedor
+    healthcheck:
+      # Verificar si el servicio está funcionando correctamente
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U ${POSTGRES_USER:-valenzo} -d ${POSTGRES_DB_NAME:-chatappdb}',
+        ]
+      # Comando a ejecutar para verificar salud
+      # pg_isready: comando de Postgres que verifica si está listo
+      # Retorna exit code 0 si está OK
+
+      interval: 10s
+      # Cada cuánto verificar (cada 10 segundos)
+
+      timeout: 5s
+      # Cuánto esperar antes de considerar que falló (5 segundos)
+
+      retries: 5
+      # Cuántas veces reintentar antes de marcar como "unhealthy"
+      # Total: 10s * 5 = 50 segundos antes de declararlo unhealthy
+
   redis:
     image: redis:latest
+    container_name: chatapp-redis
+    restart: unless-stopped
+    command:
+      redis-server --requirepass ${REDIS_PASSWORD:-redis123} --appendonly yes
+      # Sobrescribe el comando por defecto del contenedor
+    # redis-server: inicia el servidor Redis
+    # --requirepass: requiere password para conectarse
+    # --appendonly yes: habilita persistencia AOF (Append Only File)
+    #   - Guarda cada write operation en disco
+    #   - Más seguro pero un poco más lento
     ports:
-      - "6379:6379"
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', '-a', '${REDIS_PASSWORD:-redis123}', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
 volumes:
   postgres_data:
+  redis_data:
