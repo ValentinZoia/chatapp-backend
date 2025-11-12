@@ -12,6 +12,7 @@ import { LOGGER_SERVICE } from '@/src/common/constants/logger.constants';
 import type { ILogger } from '@/src/common/interfaces/logger.interface';
 import type { GraphQLContext } from '@/src/common/interfaces/graphql-context.interface';
 import { seconds, SkipThrottle, Throttle } from '@nestjs/throttler';
+import { RedisCacheService } from '@/src/common/cache/services/cache.service';
 
 @Resolver()
 @Throttle({ short: { limit: 10, ttl: seconds(5) } }) // 10 requests/5s
@@ -21,6 +22,7 @@ export class UserResolver {
     @Inject(LOGGER_SERVICE)
     private readonly logger: ILogger,
     private readonly userService: UserService,
+    private readonly cacheService: RedisCacheService,
   ) {}
 
   @Query(() => UserEntity, {
@@ -35,7 +37,19 @@ export class UserResolver {
       correlationId: ctx?.correlationId,
       userId: id,
     });
-    return this.userService.findUserById(id);
+
+    const cacheKey = `cache:user:getById:${id}`;
+    const cached = await this.cacheService.get<UserEntity>(cacheKey);
+    if (cached) {
+      this.logger.log('Cache hit findUserById', this.context, { userId: id });
+      return cached;
+    }
+
+    const result = await this.userService.findUserById(id);
+    if (result) {
+      await this.cacheService.set(cacheKey, result, 60); // 60 seg
+    }
+    return result;
   }
 
   @Query(() => [UserEntity], {
@@ -47,7 +61,19 @@ export class UserResolver {
       correlationId: ctx?.correlationId,
       hasFilters: false,
     });
-    return this.userService.findAllUsers();
+
+    const cacheKey = `cache:user:all`;
+    const cached = await this.cacheService.get<UserEntity[]>(cacheKey);
+    if (cached) {
+      this.logger.log('Cache hit findAllUsers', this.context, {});
+      return cached;
+    }
+
+    const result = await this.userService.findAllUsers();
+    if (result && result.length > 0) {
+      await this.cacheService.set(cacheKey, result, 60); // 60 seg
+    }
+    return result;
   }
 
   @UseGuards(GraphqlAuthGuard)
@@ -73,7 +99,36 @@ export class UserResolver {
       avatarUrl: imageUrl,
       id: userId,
     } as UpdateUserInput;
-    return this.userService.updateUser(data);
+
+    const result = await this.userService.updateUser(data);
+
+    // Invalidar cache del usuario actualizado
+    const userCacheKey = `cache:user:getById:${userId}`;
+    await this.cacheService.del(userCacheKey);
+
+    // Invalidar cache de todos los usuarios
+    const allUsersKey = `cache:user:all`;
+    await this.cacheService.del(allUsersKey);
+
+    // Invalidar todos los cachés de búsqueda de usuarios (pueden retornar este usuario)
+    const userSearchPattern = `cache:user:search:*`;
+    await this.cacheService.delByPattern(userSearchPattern);
+
+    // Invalidar listados de usuarios de chatrooms (el avatar cambió)
+    const chatroomUsersPattern = `cache:chatroom:*:users`;
+    await this.cacheService.delByPattern(chatroomUsersPattern);
+
+    this.logger.debug('Cache invalidated for updated user', this.context, {
+      userId,
+      invalidatedKeys: [
+        userCacheKey,
+        allUsersKey,
+        userSearchPattern,
+        chatroomUsersPattern,
+      ],
+    });
+
+    return result;
   }
 
   @UseGuards(GraphqlAuthGuard)
@@ -87,12 +142,32 @@ export class UserResolver {
       searchPattern: fullname,
       requestingUserId: context.req.user.sub,
     });
-    return this.userService.searchUsers(fullname, context.req.user.sub);
+
+    // Normalizar el término de búsqueda para la clave
+    const normalizedSearch = encodeURIComponent(fullname.trim().toLowerCase());
+    const cacheKey = `cache:user:search:${normalizedSearch}`;
+
+    const cached = await this.cacheService.get<UserEntity[]>(cacheKey);
+    if (cached) {
+      this.logger.log('Cache hit searchUsers', this.context, {
+        searchTerm: fullname,
+      });
+      return cached;
+    }
+
+    const result = await this.userService.searchUsers(
+      fullname,
+      context.req.user.sub,
+    );
+    if (result && result.length > 0) {
+      await this.cacheService.set(cacheKey, result, 30); // 30 seg, búsquedas son menos estables
+    }
+    return result;
   }
 
   @UseGuards(GraphqlAuthGuard)
   @Query(() => [UserEntity])
-  getUsersOfChatroom(
+  async getUsersOfChatroom(
     @Args('chatroomId') chatroomId: number,
     @Context() ctx: GraphQLContext,
   ) {
@@ -101,6 +176,20 @@ export class UserResolver {
       chatroomId,
       requestingUserId: ctx.req.user.sub,
     });
-    return this.userService.getUsersOfChatroom(chatroomId);
+
+    const cacheKey = `cache:chatroom:${chatroomId}:users`;
+    const cached = await this.cacheService.get<UserEntity[]>(cacheKey);
+    if (cached) {
+      this.logger.log('Cache hit getUsersOfChatroom', this.context, {
+        chatroomId,
+      });
+      return cached;
+    }
+
+    const result = await this.userService.getUsersOfChatroom(chatroomId);
+    if (result && result.length > 0) {
+      await this.cacheService.set(cacheKey, result, 30); // 30 seg, lista de usuarios puede cambiar
+    }
+    return result;
   }
 }
