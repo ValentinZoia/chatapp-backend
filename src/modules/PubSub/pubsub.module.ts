@@ -1,3 +1,4 @@
+import { RedisCacheService } from '@/src/common/cache/services/cache.service';
 import { PUB_SUB } from '@/src/common/constants';
 import { Global, Module } from '@nestjs/common';
 import { RedisPubSub } from 'graphql-redis-subscriptions';
@@ -41,7 +42,8 @@ const pubSub = new RedisPubSub({
       provide: PUB_SUB,
       useValue: pubSub,
     },
+    RedisCacheService,
   ],
-  exports: [PUB_SUB],
+  exports: [PUB_SUB, RedisCacheService],
 })
 export class PubSubModule {}

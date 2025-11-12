@@ -23,16 +23,14 @@ export class ChatroomService {
     private readonly logger: ILogger,
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
-  ) { }
+  ) {}
 
   async getChatroom(id: number): Promise<ChatroomEntity> {
     const startTime = Date.now();
     try {
-      this.logger.debug(
-        `Fetching chatroom by id`,
-        this.context,
-        { chatroomId: id }
-      );
+      this.logger.debug(`Fetching chatroom by id`, this.context, {
+        chatroomId: id,
+      });
 
       const chatroom = await this.prisma.chatroom.findUnique({
         where: { id },
@@ -47,11 +45,10 @@ export class ChatroomService {
 
       if (!chatroom) {
         const duration = Date.now() - startTime;
-        this.logger.warn(
-          'Chatroom not found',
-          this.context,
-          { chatroomId: id, duration }
-        );
+        this.logger.log('Chatroom not found', this.context, {
+          chatroomId: id,
+          duration,
+        });
         throw new ErrorManager({
           type: 'NOT_FOUND',
           message: 'Chatroom not found',
@@ -59,15 +56,11 @@ export class ChatroomService {
       }
 
       const duration = Date.now() - startTime;
-      this.logger.debug(
-        'Chatroom retrieved successfully',
-        this.context,
-        {
-          chatroomId: id,
-          userCount: chatroom.users.length,
-          duration
-        }
-      );
+      this.logger.debug('Chatroom retrieved successfully', this.context, {
+        chatroomId: id,
+        userCount: chatroom.users.length,
+        duration,
+      });
 
       return chatroom;
     } catch (error) {
@@ -78,8 +71,8 @@ export class ChatroomService {
         this.context,
         {
           chatroomId: id,
-          duration
-        }
+          duration,
+        },
       );
       throw ErrorManager.createSignatureError(error.message);
     }
@@ -92,15 +85,11 @@ export class ChatroomService {
   ): Promise<SearchChatroomsResult> {
     const startTime = Date.now();
     try {
-      this.logger.debug(
-        'Starting chatroom search',
-        this.context,
-        {
-          searchTerm,
-          limit,
-          userId
-        }
-      );
+      this.logger.debug('Starting chatroom search', this.context, {
+        searchTerm,
+        limit,
+        userId,
+      });
 
       // Sanitizar el término de búsqueda
       const sanitizedTerm = searchTerm.trim();
@@ -110,7 +99,7 @@ export class ChatroomService {
         this.logger.debug(
           'Empty search term, returning empty results',
           this.context,
-          { duration }
+          { duration },
         );
         return {
           chatrooms: [],
@@ -185,17 +174,13 @@ export class ChatroomService {
       });
 
       const duration = Date.now() - startTime;
-      this.logger.debug(
-        'Chatroom search completed',
-        this.context,
-        {
-          searchTerm: sanitizedTerm,
-          foundCount: chatrooms.length,
-          totalCount,
-          duration,
-          userId
-        }
-      );
+      this.logger.debug('Chatroom search completed', this.context, {
+        searchTerm: sanitizedTerm,
+        foundCount: chatrooms.length,
+        totalCount,
+        duration,
+        userId,
+      });
 
       return {
         chatrooms,
@@ -210,8 +195,8 @@ export class ChatroomService {
         {
           searchTerm,
           userId,
-          duration
-        }
+          duration,
+        },
       );
       throw ErrorManager.createSignatureError(error.message);
     }
@@ -225,15 +210,11 @@ export class ChatroomService {
     const { name, description, colorHex, image, access } = createChatroomInput;
 
     try {
-      this.logger.log(
-        'Creating new chatroom',
-        this.context,
-        {
-          name,
-          access,
-          adminId: sub
-        }
-      );
+      this.logger.log('Creating new chatroom', this.context, {
+        name,
+        access,
+        adminId: sub,
+      });
 
       const existingChatroom = await this.prisma.chatroom.findFirst({
         where: {
@@ -249,8 +230,8 @@ export class ChatroomService {
           {
             name,
             duration,
-            adminId: sub
-          }
+            adminId: sub,
+          },
         );
         throw new ErrorManager({
           type: 'BAD_REQUEST',
@@ -275,17 +256,13 @@ export class ChatroomService {
       });
 
       const duration = Date.now() - startTime;
-      this.logger.log(
-        'Chatroom created successfully',
-        this.context,
-        {
-          chatroomId: createdChatroom.id,
-          name,
-          access,
-          adminId: sub,
-          duration
-        }
-      );
+      this.logger.log('Chatroom created successfully', this.context, {
+        chatroomId: createdChatroom.id,
+        name,
+        access,
+        adminId: sub,
+        duration,
+      });
 
       return createdChatroom;
     } catch (error) {
@@ -297,8 +274,8 @@ export class ChatroomService {
         {
           name,
           adminId: sub,
-          duration
-        }
+          duration,
+        },
       );
       throw ErrorManager.createSignatureError(error.message);
     }
@@ -310,15 +287,11 @@ export class ChatroomService {
   ): Promise<String> {
     const startTime = Date.now();
     try {
-      this.logger.log(
-        'Adding users to chatroom',
-        this.context,
-        {
-          chatroomId,
-          userCount: userIds.length,
-          userIds
-        }
-      );
+      this.logger.log('Adding users to chatroom', this.context, {
+        chatroomId,
+        userCount: userIds.length,
+        userIds,
+      });
 
       const existingChatroom = await this.prisma.chatroom.findUnique({
         where: {
@@ -334,8 +307,8 @@ export class ChatroomService {
           {
             chatroomId,
             userIds,
-            duration
-          }
+            duration,
+          },
         );
         throw new ErrorManager({
           type: 'NOT_FOUND',
@@ -355,16 +328,12 @@ export class ChatroomService {
       });
 
       const duration = Date.now() - startTime;
-      this.logger.log(
-        'Users added to chatroom successfully',
-        this.context,
-        {
-          chatroomId,
-          chatroomName: updatedChatroom.name,
-          addedUsers: userIds.length,
-          duration
-        }
-      );
+      this.logger.log('Users added to chatroom successfully', this.context, {
+        chatroomId,
+        chatroomName: updatedChatroom.name,
+        addedUsers: userIds.length,
+        duration,
+      });
 
       return updatedChatroom.name;
     } catch (error) {
@@ -376,8 +345,8 @@ export class ChatroomService {
         {
           chatroomId,
           userIds,
-          duration
-        }
+          duration,
+        },
       );
       throw ErrorManager.createSignatureError(error.message);
     }
@@ -386,11 +355,7 @@ export class ChatroomService {
   async getChatroomsForUser(userId: number) {
     const startTime = Date.now();
     try {
-      this.logger.debug(
-        'Fetching user chatrooms',
-        this.context,
-        { userId }
-      );
+      this.logger.debug('Fetching user chatrooms', this.context, { userId });
 
       const chatrooms = await this.prisma.chatroom.findMany({
         where: {
@@ -425,16 +390,12 @@ export class ChatroomService {
       });
 
       const duration = Date.now() - startTime;
-      this.logger.debug(
-        'User chatrooms retrieved successfully',
-        this.context,
-        {
-          userId,
-          chatroomCount: chatrooms.length,
-          hasMessages: chatrooms.some(c => c.messages.length > 0),
-          duration
-        }
-      );
+      this.logger.debug('User chatrooms retrieved successfully', this.context, {
+        userId,
+        chatroomCount: chatrooms.length,
+        hasMessages: chatrooms.some((c) => c.messages.length > 0),
+        duration,
+      });
 
       return chatrooms;
     } catch (error) {
@@ -445,8 +406,8 @@ export class ChatroomService {
         this.context,
         {
           userId,
-          duration
-        }
+          duration,
+        },
       );
       throw ErrorManager.createSignatureError(error.message);
     }
@@ -460,16 +421,12 @@ export class ChatroomService {
   ): Promise<MessageEdge> {
     const startTime = Date.now();
     try {
-      this.logger.debug(
-        'Creating new message',
-        this.context,
-        {
-          chatroomId,
-          userId,
-          hasImage: !!imagePath,
-          messageLength: message?.length
-        }
-      );
+      this.logger.debug('Creating new message', this.context, {
+        chatroomId,
+        userId,
+        hasImage: !!imagePath,
+        messageLength: message?.length,
+      });
 
       const messageCreated = await this.prisma.message.create({
         data: {
@@ -489,17 +446,13 @@ export class ChatroomService {
       });
 
       const duration = Date.now() - startTime;
-      this.logger.debug(
-        'Message created successfully',
-        this.context,
-        {
-          messageId: messageCreated.id,
-          chatroomId,
-          userId,
-          hasImage: !!imagePath,
-          duration
-        }
-      );
+      this.logger.debug('Message created successfully', this.context, {
+        messageId: messageCreated.id,
+        chatroomId,
+        userId,
+        hasImage: !!imagePath,
+        duration,
+      });
 
       return { node: messageCreated, cursor: messageCreated.id };
     } catch (error) {
@@ -512,8 +465,8 @@ export class ChatroomService {
           chatroomId,
           userId,
           hasImage: !!imagePath,
-          duration
-        }
+          duration,
+        },
       );
       throw ErrorManager.createSignatureError(error.message);
     }
@@ -526,27 +479,19 @@ export class ChatroomService {
   }) {
     const startTime = Date.now();
     try {
-      this.logger.debug(
-        'Processing image upload',
-        this.context,
-        {
-          filename: image.filename,
-          mimetype: image.mimetype
-        }
-      );
+      this.logger.debug('Processing image upload', this.context, {
+        filename: image.filename,
+        mimetype: image.mimetype,
+      });
 
       const validImageTypes = ['image/jpeg', 'image/png', 'image/gif'];
       if (!validImageTypes.includes(image.mimetype)) {
         const duration = Date.now() - startTime;
-        this.logger.warn(
-          'Invalid image type attempted',
-          this.context,
-          {
-            filename: image.filename,
-            mimetype: image.mimetype,
-            duration
-          }
-        );
+        this.logger.warn('Invalid image type attempted', this.context, {
+          filename: image.filename,
+          mimetype: image.mimetype,
+          duration,
+        });
         throw new ErrorManager({
           type: 'BAD_REQUEST',
           message: 'Invalid image type',
@@ -566,15 +511,11 @@ export class ChatroomService {
       });
 
       const duration = Date.now() - startTime;
-      this.logger.debug(
-        'Image saved successfully',
-        this.context,
-        {
-          filename: image.filename,
-          path: imagePath,
-          duration
-        }
-      );
+      this.logger.debug('Image saved successfully', this.context, {
+        filename: image.filename,
+        path: imagePath,
+        duration,
+      });
 
       return imagePath;
     } catch (error) {
@@ -586,8 +527,8 @@ export class ChatroomService {
         {
           filename: image.filename,
           mimetype: image.mimetype,
-          duration
-        }
+          duration,
+        },
       );
       throw ErrorManager.createSignatureError(error.message);
     }
@@ -600,15 +541,11 @@ export class ChatroomService {
   ): Promise<PaginatedMessage> {
     const startTime = Date.now();
     try {
-      this.logger.debug(
-        'Fetching paginated messages',
-        this.context,
-        {
-          chatroomId,
-          requestedCount: take,
-          fromCursor: cursor
-        }
-      );
+      this.logger.debug('Fetching paginated messages', this.context, {
+        chatroomId,
+        requestedCount: take,
+        fromCursor: cursor,
+      });
 
       // Limitar el tamaño maximo de la pagina, maximo 50
       const limit = Math.min(take, 50);
@@ -671,17 +608,13 @@ export class ChatroomService {
       });
 
       const duration = Date.now() - startTime;
-      this.logger.debug(
-        'Messages retrieved successfully',
-        this.context,
-        {
-          chatroomId,
-          retrievedCount: nodes.length,
-          hasNextPage,
-          totalCount,
-          duration
-        }
-      );
+      this.logger.debug('Messages retrieved successfully', this.context, {
+        chatroomId,
+        retrievedCount: nodes.length,
+        hasNextPage,
+        totalCount,
+        duration,
+      });
 
       return {
         edges: nodes
@@ -703,8 +636,8 @@ export class ChatroomService {
           chatroomId,
           requestedCount: take,
           fromCursor: cursor,
-          duration
-        }
+          duration,
+        },
       );
       throw ErrorManager.createSignatureError(error.message);
     }
@@ -713,11 +646,7 @@ export class ChatroomService {
   async deleteChatroom(chatroomId: number) {
     const startTime = Date.now();
     try {
-      this.logger.log(
-        'Deleting chatroom',
-        this.context,
-        { chatroomId }
-      );
+      this.logger.log('Deleting chatroom', this.context, { chatroomId });
 
       const chatroom = await this.prisma.chatroom.delete({
         where: {
@@ -727,24 +656,20 @@ export class ChatroomService {
           _count: {
             select: {
               users: true,
-              messages: true
-            }
-          }
-        }
+              messages: true,
+            },
+          },
+        },
       });
 
       const duration = Date.now() - startTime;
-      this.logger.log(
-        'Chatroom deleted successfully',
-        this.context,
-        {
-          chatroomId,
-          chatroomName: chatroom.name,
-          deletedUsersCount: chatroom._count.users,
-          deletedMessagesCount: chatroom._count.messages,
-          duration
-        }
-      );
+      this.logger.log('Chatroom deleted successfully', this.context, {
+        chatroomId,
+        chatroomName: chatroom.name,
+        deletedUsersCount: chatroom._count.users,
+        deletedMessagesCount: chatroom._count.messages,
+        duration,
+      });
 
       return chatroom;
     } catch (error) {
@@ -755,8 +680,8 @@ export class ChatroomService {
         this.context,
         {
           chatroomId,
-          duration
-        }
+          duration,
+        },
       );
       throw ErrorManager.createSignatureError(error.message);
     }

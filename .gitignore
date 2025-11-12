@@ -70,3 +70,5 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 # LOGS
 logs/
 *.log
+
+CACHE_DATETIME_FIX.md
