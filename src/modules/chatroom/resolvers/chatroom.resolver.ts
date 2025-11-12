@@ -13,6 +13,7 @@ import { ChatroomService } from '../services/chatroom.service';
 import { UserService } from '@/src/modules/user/services/user.service';
 import { ChatroomEntity } from '../entities/chatroom.entity';
 import { UserEntity } from '@/src/modules/user/entities/user.entity';
+import { RedisCacheService } from '@/src/common/cache/services/cache.service';
 import { Request } from 'express';
 import { GraphqlAuthGuard } from '@/src/modules/auth/guards/auth.guard';
 import GraphQLUpload, {
@@ -41,6 +42,7 @@ export class ChatroomResolver {
   constructor(
     @Inject(PUB_SUB) private pubSub: PubSub,
     private readonly chatroomService: ChatroomService,
+    private readonly cacheService: RedisCacheService,
     private readonly userService: UserService,
     @Inject(LOGGER_SERVICE)
     private readonly logger: ILogger,
@@ -218,6 +220,20 @@ export class ChatroomResolver {
       newMessage.node.createdAt = new Date();
     }
 
+    // Invalidar cache de mensajes recientes para este chatroom
+    // Borrar el cache de la primera página (sin cursor) que es la más frecuente
+    const recentMessagesKey = `cache:chatroom:${chatroomId}:messages:take=20:cursor=null`;
+    await this.cacheService.del(recentMessagesKey);
+
+    // Invalidar también todas las páginas de mensajes para este chatroom
+    const allMessagesPattern = `cache:chatroom:${chatroomId}:messages:*`;
+    await this.cacheService.delByPattern(allMessagesPattern);
+
+    this.logger.debug('Cache invalidated for messages', this.context, {
+      chatroomId,
+      pattern: allMessagesPattern,
+    });
+
     await this.pubSub
       .publish(`newMessage.${chatroomId}`, { newMessage })
       .then(() => {
@@ -256,10 +272,22 @@ export class ChatroomResolver {
       chatroomName: createChatroomInput.name,
       access: createChatroomInput.access,
     });
-    return this.chatroomService.createChatroom(
+
+    const result = await this.chatroomService.createChatroom(
       createChatroomInput,
       req.user.sub,
     );
+
+    // Invalidar cache de chatrooms del usuario (su lista de salas cambió)
+    const userChatroomsKey = `cache:chatroom:getForUser:${req.user.sub}`;
+    await this.cacheService.del(userChatroomsKey);
+
+    this.logger.debug('Cache invalidated for user chatrooms', this.context, {
+      userId: req.user.sub,
+      cacheKey: userChatroomsKey,
+    });
+
+    return result;
   }
 
   @UseGuards(GraphqlAuthGuard)
@@ -280,6 +308,26 @@ export class ChatroomResolver {
     const chatroomName = await this.chatroomService.addUsersToChatroom(
       chatroomId,
       userIds,
+    );
+
+    // Invalidar cache de usuarios de esta sala
+    const chatroomUsersKey = `cache:chatroom:${chatroomId}:users`;
+    await this.cacheService.del(chatroomUsersKey);
+
+    // Invalidar cache de chatrooms para cada usuario agregado
+    for (const userId of userIds) {
+      const userChatroomsKey = `cache:chatroom:getForUser:${userId}`;
+      await this.cacheService.del(userChatroomsKey);
+    }
+
+    this.logger.debug(
+      'Cache invalidated for chatroom and affected users',
+      this.context,
+      {
+        correlationId,
+        chatroomId,
+        affectedUsers: userIds.length,
+      },
     );
 
     this.logger.log('Users added to chatroom successfully', this.context, {
@@ -331,7 +379,18 @@ export class ChatroomResolver {
       chatroomId,
       userId: req.user.sub,
     });
-    return this.chatroomService.getChatroom(chatroomId);
+
+    const cacheKey = `cache:chatroom:getById:${chatroomId}`;
+    const cached = await this.cacheService.get<ChatroomEntity>(cacheKey);
+    if (cached) {
+      this.logger.log('Cache hit getChatroomId', this.context, { chatroomId });
+      return cached;
+    }
+    const result = await this.chatroomService.getChatroom(chatroomId);
+    if (result) {
+      await this.cacheService.set(cacheKey, result, 60); //60 seg
+    }
+    return result;
   }
 
   // @UseGuards(GraphqlAuthGuard)
@@ -345,7 +404,21 @@ export class ChatroomResolver {
       correlationId,
       userId,
     });
-    return this.chatroomService.getChatroomsForUser(userId);
+
+    const cacheKey = `cache:chatroom:getForUser:${userId}`;
+    const cached = await this.cacheService.get<ChatroomEntity[]>(cacheKey);
+    if (cached) {
+      this.logger.log('Cache hit getChatroomsForUser', this.context, {
+        userId,
+      });
+      return cached;
+    }
+
+    const result = await this.chatroomService.getChatroomsForUser(userId);
+    if (result && result.length > 0) {
+      await this.cacheService.set(cacheKey, result, 30); // 30 seg
+    }
+    return result;
   }
 
   @UseGuards(GraphqlAuthGuard, ChatroomAccessGuard)
@@ -363,11 +436,36 @@ export class ChatroomResolver {
       take,
       cursor,
     });
-    return this.chatroomService.getMessagesForChatroom(
+
+    // Determinar TTL basado en si es página reciente o histórica
+    // Páginas recientes (cursor=null o próximas): 5s (más corto, datos dinámicos)
+    // Páginas antiguas: 60s (más estables)
+    const isRecentPage = !cursor || cursor === 0;
+    const cacheTTL = isRecentPage ? 5 : 60;
+    const cacheKey = `cache:chatroom:${chatroomId}:messages:take=${take}:cursor=${
+      cursor || 'null'
+    }`;
+
+    const cached = await this.cacheService.get<PaginatedMessage>(cacheKey);
+    if (cached) {
+      this.logger.log('Cache hit getMessagesForChatroom', this.context, {
+        chatroomId,
+        cursor,
+        isRecentPage,
+      });
+      return cached;
+    }
+
+    const result = await this.chatroomService.getMessagesForChatroom(
       chatroomId,
       take,
       cursor,
     );
+
+    if (result && result.edges && result.edges.length > 0) {
+      await this.cacheService.set(cacheKey, result, cacheTTL);
+    }
+    return result;
   }
 
   @UseGuards(GraphqlAuthGuard, ChatroomAccessGuard)
@@ -384,6 +482,30 @@ export class ChatroomResolver {
     });
 
     await this.chatroomService.deleteChatroom(chatroomId);
+
+    // Invalidar todos los caches relacionados a esta sala
+    const chatroomByIdKey = `cache:chatroom:getById:${chatroomId}`;
+    const chatroomUsersKey = `cache:chatroom:${chatroomId}:users`;
+    const messagesPattern = `cache:chatroom:${chatroomId}:messages:*`;
+
+    await this.cacheService.del(chatroomByIdKey);
+    await this.cacheService.del(chatroomUsersKey);
+    await this.cacheService.delByPattern(messagesPattern);
+
+    // Invalidar cache de chatrooms para el usuario (creador)
+    const userChatroomsKey = `cache:chatroom:getForUser:${req.user.sub}`;
+    await this.cacheService.del(userChatroomsKey);
+
+    this.logger.debug('Cache invalidated for deleted chatroom', this.context, {
+      correlationId,
+      chatroomId,
+      invalidatedKeys: [
+        chatroomByIdKey,
+        chatroomUsersKey,
+        messagesPattern,
+        userChatroomsKey,
+      ],
+    });
 
     this.logger.log('Chatroom deleted successfully', this.context, {
       correlationId,
